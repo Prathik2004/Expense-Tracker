@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+dist/
+.next/
+out/
+build/
+*.log
+.env*
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# Subdirectory specific ignores
+backend/node_modules/
+backend/dist/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
