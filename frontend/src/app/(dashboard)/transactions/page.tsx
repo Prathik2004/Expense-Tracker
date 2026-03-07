@@ -15,12 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Loader2, Download, Search, Plus } from "lucide-react";
+import { Loader2, Download, Search, Plus, Trash2, Edit2 } from "lucide-react";
+import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
     // Filters and pagination
     const [page, setPage] = useState(1);
@@ -49,6 +52,21 @@ export default function TransactionsPage() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        try {
+            await api.delete(`/transactions/${id}`);
+            fetchTransactions();
+        } catch (err) {
+            console.error("Failed to delete transaction", err);
+        }
+    };
+
+    const handleEdit = (tx: any) => {
+        setEditingTransaction(tx);
+        setIsModalOpen(true);
+    };
+
     const handleExportCSV = async () => {
         try {
             const res = await api.get('/transactions/export/csv', { responseType: 'blob' });
@@ -67,7 +85,7 @@ export default function TransactionsPage() {
     const totalPages = Math.ceil(total / limit);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
@@ -81,7 +99,7 @@ export default function TransactionsPage() {
                         <Download className="w-4 h-4 mr-2" />
                         Export CSV
                     </Button>
-                    <Button>
+                    <Button onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }}>
                         <Plus className="w-4 h-4 mr-2" />
                         Add New
                     </Button>
@@ -111,62 +129,74 @@ export default function TransactionsPage() {
                 </Select>
             </div>
 
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-950">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                            <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                                </TableCell>
+            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
+                                <TableHead className="w-[120px]">Date</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                        ) : transactions.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
-                                    No transactions found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            transactions.filter(t => t.description?.toLowerCase().includes(search.toLowerCase())).map((tx) => (
-                                <TableRow key={tx._id}>
-                                    <TableCell className="font-medium">
-                                        {format(new Date(tx.date), 'MMM dd, yyyy')}
-                                    </TableCell>
-                                    <TableCell>{tx.description || 'No description'}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline" className="font-normal text-xs">
-                                            {tx.category}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className={
-                                                tx.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                    tx.type === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
-                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                                            }
-                                        >
-                                            {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className={`text-right font-medium ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : tx.type === 'expense' ? 'text-zinc-900 dark:text-zinc-100' : 'text-purple-600 dark:text-purple-500'}`}>
-                                        {tx.type === 'expense' ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : transactions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
+                                        No transactions found.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                transactions.filter(t => t.description?.toLowerCase().includes(search.toLowerCase())).map((tx) => (
+                                    <TableRow key={tx._id} className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors">
+                                        <TableCell className="font-medium text-xs sm:text-sm">
+                                            {format(new Date(tx.date), 'MMM dd, yyyy')}
+                                        </TableCell>
+                                        <TableCell className="max-w-[150px] truncate">{tx.description || '-'}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="font-normal text-[11px] h-5">
+                                                {tx.category}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant="secondary"
+                                                className={`text-[11px] h-5 ${tx.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                                    tx.type === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
+                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                    }`}
+                                            >
+                                                {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={`text-right font-semibold ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : tx.type === 'expense' ? 'text-zinc-900 dark:text-zinc-100' : 'text-purple-600 dark:text-purple-500'}`}>
+                                            {tx.type === 'expense' ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500" onClick={() => handleEdit(tx)}>
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" onClick={() => handleDelete(tx._id)}>
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             {totalPages > 1 && (
@@ -194,6 +224,13 @@ export default function TransactionsPage() {
                     </div>
                 </div>
             )}
+
+            <AddTransactionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchTransactions}
+                transaction={editingTransaction}
+            />
         </div>
     );
 }

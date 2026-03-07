@@ -14,6 +14,7 @@ export default function DashboardPage() {
     const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -31,6 +32,21 @@ export default function DashboardPage() {
         }
     };
 
+    const handleEdit = (tx: any) => {
+        setEditingTransaction(tx);
+        setIsAddOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        try {
+            await api.delete(`/transactions/${id}`);
+            fetchData();
+        } catch (err) {
+            console.error("Failed to delete transaction", err);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -40,6 +56,7 @@ export default function DashboardPage() {
         if (typeof window !== 'undefined') {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('add') === 'true') {
+                setEditingTransaction(null);
                 setIsAddOpen(true);
                 // Clean up URL
                 window.history.replaceState({}, '', '/');
@@ -73,17 +90,22 @@ export default function DashboardPage() {
             />
 
             <div className="grid gap-4 lg:grid-cols-7">
-                <RecentTransactions transactions={recentTransactions} />
+                <RecentTransactions
+                    transactions={recentTransactions}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                />
                 <CategoryExpenseChart data={summary?.categoryBreakdown || []} />
             </div>
 
             {/* Override QuickAddFAB to open modal instead of navigating */}
-            <QuickAddFAB onClick={() => setIsAddOpen(true)} />
+            <QuickAddFAB onClick={() => { setEditingTransaction(null); setIsAddOpen(true); }} />
 
             <AddTransactionModal
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 onSuccess={fetchData}
+                transaction={editingTransaction}
             />
         </div>
     );
