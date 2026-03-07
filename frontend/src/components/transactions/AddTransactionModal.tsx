@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -50,8 +50,8 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategory, setNewCategory] = useState("");
 
-    // Reset form when modal opens/closes or transaction changes
-    useState(() => {
+    // Sync form state when transaction changes or modal opens
+    useEffect(() => {
         if (isOpen) {
             setType(transaction?.type || "expense");
             setAmount(transaction?.amount?.toString() || "");
@@ -61,7 +61,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
             setIsAddingCategory(false);
             setNewCategory("");
         }
-    });
+    }, [isOpen, transaction]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -158,6 +158,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                             required
                             min="0"
                             step="0.01"
+                            autoFocus={isEdit}
                         />
                     </div>
 
@@ -172,6 +173,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                         onChange={(e) => setNewCategory(e.target.value)}
                                         className="h-12"
                                         autoFocus
+                                        disabled={isEdit}
                                     />
                                     <Button
                                         type="button"
@@ -179,6 +181,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                         size="sm"
                                         className="h-12 px-2"
                                         onClick={() => setIsAddingCategory(false)}
+                                        disabled={isEdit}
                                     >
                                         ✕
                                     </Button>
@@ -190,8 +193,8 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                     } else {
                                         setCategory(v);
                                     }
-                                }} required>
-                                    <SelectTrigger className="h-12 text-sm">
+                                }} required disabled={isEdit}>
+                                    <SelectTrigger className="h-12 text-sm disabled:opacity-80">
                                         <SelectValue placeholder="Select one" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -214,8 +217,9 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="h-12 text-sm"
+                                className="h-12 text-sm disabled:opacity-80"
                                 required
+                                disabled={isEdit}
                             />
                         </div>
                     </div>
@@ -227,7 +231,8 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                             placeholder="What was this for?"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="h-12"
+                            className="h-12 disabled:opacity-80"
+                            disabled={isEdit}
                         />
                     </div>
 
