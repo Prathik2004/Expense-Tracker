@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // If it doesn't start with http, and it's not localhost, prepend https://
+    if (!url.startsWith('http') && !url.includes('localhost')) {
+        return `https://${url}`;
+    }
+    return url;
+};
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    baseURL: getBaseURL(),
     headers: {
         'Content-Type': 'application/json',
     },
