@@ -16,6 +16,7 @@ const navItems = [
     { href: '/transactions', label: 'Activity', icon: ArrowRightLeft },
     { href: '/portfolio', label: 'Portfolio', icon: BarChart3 },
     { href: '/lending', label: 'Lending', icon: HandCoins },
+    { href: '/budgets', label: 'Budgets', icon: PieChart },
     { href: '/goals', label: 'Goals', icon: Target },
 ];
 
