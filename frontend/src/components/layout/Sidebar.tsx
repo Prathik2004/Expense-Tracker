@@ -10,7 +10,8 @@ import {
     PieChart,
     LogOut,
     Wallet,
-    BarChart3
+    BarChart3,
+    HandCoins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -20,6 +21,7 @@ const navItems = [
     { href: '/', label: 'Overview', icon: LayoutDashboard },
     { href: '/transactions', label: 'Transactions', icon: ArrowRightLeft },
     { href: '/portfolio', label: 'Portfolio', icon: BarChart3 },
+    { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
 ];

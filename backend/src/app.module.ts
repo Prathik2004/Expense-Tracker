@@ -11,6 +11,7 @@ import { GoalsModule } from './goals/goals.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
+import { LendingModule } from './lending/lending.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { PortfolioModule } from './portfolio/portfolio.module';
     GoalsModule,
     RecurringModule,
     BudgetsModule,
-    PortfolioModule
+    PortfolioModule,
+    LendingModule
   ],
   controllers: [AppController],
   providers: [AppService],

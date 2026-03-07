@@ -7,15 +7,16 @@ import {
     ArrowRightLeft,
     Target,
     PieChart,
-    BarChart3
+    BarChart3,
+    HandCoins
 } from 'lucide-react';
 
 const navItems = [
     { href: '/', label: 'Overview', icon: LayoutDashboard },
     { href: '/transactions', label: 'Activity', icon: ArrowRightLeft },
     { href: '/portfolio', label: 'Portfolio', icon: BarChart3 },
+    { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
-    { href: '/budgets', label: 'Budgets', icon: PieChart },
 ];
 
 export function BottomNav() {
