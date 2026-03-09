@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { WebhooksService } from './webhooks.service';
+import { WebhooksService } from './webhooks.service.js';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('webhooks')
