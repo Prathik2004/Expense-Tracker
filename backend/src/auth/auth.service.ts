@@ -25,13 +25,27 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
+        return this.generateToken(user);
+    }
+
+    async googleLogin(reqUser: any) {
+        if (!reqUser) {
+            throw new UnauthorizedException('No user from google');
+        }
+
+        const user = await this.usersService.findOrCreateGoogleUser(reqUser);
+        return this.generateToken(user);
+    }
+
+    private generateToken(user: any) {
         const payload = { email: user.email, sub: user._id };
         return {
             access_token: this.jwtService.sign(payload),
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                picture: user.picture
             }
         };
     }

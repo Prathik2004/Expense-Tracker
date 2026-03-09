@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet } from 'lucide-react';
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -81,7 +82,19 @@ export default function LoginPage() {
                         <Button className="w-full" type="submit" disabled={isLoading}>
                             {isLoading ? 'Signing in...' : 'Sign in'}
                         </Button>
-                        <div className="text-sm text-center text-zinc-500">
+
+                        <div className="relative w-full">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-white dark:bg-zinc-950 px-2 text-zinc-500">Or continue with</span>
+                            </div>
+                        </div>
+
+                        <GoogleLoginButton />
+
+                        <div className="text-sm text-center text-zinc-500 pt-2">
                             Don't have an account?{' '}
                             <Link href="/register" className="text-primary hover:underline">
                                 Sign up

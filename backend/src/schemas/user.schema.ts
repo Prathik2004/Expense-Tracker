@@ -11,8 +11,14 @@ export class User {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop()
   password?: string;
+
+  @Prop()
+  googleId?: string;
+
+  @Prop()
+  picture?: string;
 
   @Prop({ default: 0 })
   portfolioValue?: number;
