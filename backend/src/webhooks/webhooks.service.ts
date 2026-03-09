@@ -32,18 +32,18 @@ export class WebhooksService {
         this.logger.log(`Verified user: ${userExists.email}`);
 
         // 2. Check if it's a debit message
-        const isDebit = /debited|spent|sent|paid to/i.test(message);
+        const isDebit = /debited|spent|sent|paid|payment|transferred/i.test(message);
         if (!isDebit) {
             this.logger.log('Ignoring non-debit message or OTP');
-            return { success: false, reason: 'Not a debit message' };
+            return { success: false, reason: 'Not a debit message', receivedMessage: message };
         }
 
         // 3. Extract Amount
-        const amountRegex = /(?:Rs\.?|INR|Rs)\s?([\d,]+\.?\d*)/i;
+        const amountRegex = /(?:Rs\.?|INR|Rs|₹)\s?([\d,]+\.?\d*)/i;
         const amountMatch = message.match(amountRegex);
         if (!amountMatch) {
             this.logger.warn('Could not extract amount from message');
-            return { success: false, reason: 'Amount not found' };
+            return { success: false, reason: 'Amount not found', receivedMessage: message };
         }
         const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
         this.logger.log(`Parsed Amount: ${amount}`);
