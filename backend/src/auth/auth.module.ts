@@ -12,6 +12,7 @@ import { GoogleStrategy } from './google.strategy';
   imports: [
     UsersModule,
     PassportModule,
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
