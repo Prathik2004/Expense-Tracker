@@ -42,6 +42,11 @@ export default function TransactionsPage() {
         fetchTransactions();
     }, [page, type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
 
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
+
     const fetchTransactions = async () => {
         setIsLoading(true);
         try {

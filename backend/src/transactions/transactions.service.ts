@@ -76,6 +76,9 @@ export class TransactionsService {
 
     const sortObj: any = {};
     sortObj[sort] = order === 'asc' ? 1 : -1;
+    if (sort !== 'createdAt') {
+      sortObj.createdAt = order === 'asc' ? 1 : -1;
+    }
 
     const skip = (page - 1) * limit;
 
