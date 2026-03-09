@@ -32,17 +32,9 @@ export class AuthController {
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Request() req: any, @Res() res: Response) {
-        console.log('Google callback hit, user:', req.user);
-        try {
-            const { access_token } = await this.authService.googleLogin(req.user);
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
-            console.log('Redirecting to:', `${frontendUrl}/auth-callback?token=${access_token}`);
-            return res.redirect(`${frontendUrl}/auth-callback?token=${access_token}`);
-        } catch (error) {
-            console.error('Error in googleAuthRedirect:', error);
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
-            return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
-        }
+        const { access_token } = await this.authService.googleLogin(req.user);
+        const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/auth-callback?token=${access_token}`);
     }
 
     @UseGuards(JwtAuthGuard)
