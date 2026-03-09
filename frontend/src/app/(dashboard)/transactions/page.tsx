@@ -300,7 +300,7 @@ export default function TransactionsPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                transactions.filter(t => t.description?.toLowerCase().includes(search.toLowerCase())).map((tx) => (
+                                transactions.map((tx) => (
                                     <TableRow key={tx._id} className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors">
                                         <TableCell className="font-medium text-xs sm:text-sm">
                                             {format(new Date(tx.date), 'MMM dd, yyyy')}

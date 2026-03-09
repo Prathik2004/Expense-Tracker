@@ -167,11 +167,11 @@ export class TransactionsService {
       const totalExpense = data.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
       const totalInvestment = data.filter(t => t.type === 'investment').reduce((acc, t) => acc + t.amount, 0);
 
-      doc.fontSize(11).text(`Total Income: ₹${totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
-      doc.text(`Total Expense: ₹${totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
-      doc.text(`Total Investment: ₹${totalInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.fontSize(11).text(`Total Income: Rs.${totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.text(`Total Expense: Rs.${totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.text(`Total Investment: Rs.${totalInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
       doc.fillColor(totalIncome - totalExpense - totalInvestment >= 0 ? '#10b981' : '#ef4444')
-        .text(`Net Balance: ₹${(totalIncome - totalExpense - totalInvestment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+        .text(`Net Balance: Rs.${(totalIncome - totalExpense - totalInvestment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
       doc.moveDown(2);
 
       // Transactions Table
@@ -206,7 +206,7 @@ export class TransactionsService {
         doc.text(t.type, 380, y);
 
         const amountColor = t.type === 'income' ? '#10b981' : t.type === 'expense' ? '#18181b' : '#8b5cf6';
-        doc.fillColor(amountColor).text(`${t.type === 'expense' ? '-' : '+'}₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 480, y, { align: 'right' });
+        doc.fillColor(amountColor).text(`${t.type === 'expense' ? '-' : '+'}Rs.${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 480, y, { align: 'right' });
         doc.fillColor('#18181b');
 
         y += 20;

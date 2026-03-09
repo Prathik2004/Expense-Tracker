@@ -47,6 +47,7 @@ export class TransactionsController {
   @Get('export/pdf')
   async exportPdf(@Request() req: any, @Query() query: any, @Res() res: Response) {
     const { data } = await this.transactionsService.findAll(req.user.userId, { ...query, limit: 10000 });
+    console.log(`[Export] Generating PDF for user ${req.user.userId} with ${data.length} transactions`);
     const buffer = await this.transactionsService.generatePdfReport(req.user.userId, data);
 
     res.setHeader('Content-Type', 'application/pdf');
