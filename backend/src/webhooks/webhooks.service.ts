@@ -14,11 +14,20 @@ export class WebhooksService {
     ) { }
 
     async processUpiSms(payload: { sender: string; message: string; userId: string }) {
-        const { message, userId, sender } = payload;
+        let { message, userId, sender } = payload;
         this.logger.log(`Processing webhook from ${sender}`);
-        console.log(`[DEBUG] Received Payload:`, payload);
+        console.log(`[DEBUG] RAW Message Received: "${message}"`);
 
-        // 1. Validate User
+        // 1. Pre-process message (Strip common notification prefixes like "Friend Name: ")
+        // This regex looks for "Name: " at the very beginning of the string
+        const prefixRegex = /^[^:]+:\s*/;
+        const cleanedMessage = message.replace(prefixRegex, '').trim();
+        if (cleanedMessage !== message) {
+            this.logger.log(`Cleaned message prefix. New: "${cleanedMessage}"`);
+            message = cleanedMessage;
+        }
+
+        // 2. Validate User
         if (!Types.ObjectId.isValid(userId)) {
             this.logger.error(`Invalid User ID format: ${userId}`);
             return { success: false, reason: 'Invalid User ID format' };
