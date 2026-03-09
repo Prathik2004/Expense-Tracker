@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import PDFDocument from 'pdfkit';
+import { format } from 'date-fns';
 import { Transaction, TransactionDocument } from '../schemas/transaction.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -30,15 +32,46 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, query: any): Promise<{ data: TransactionDocument[], total: number }> {
-    const { page = 1, limit = 10, type, category, startDate, endDate, sort = 'date', order = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 10,
+      type,
+      category,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      search,
+      sort = 'date',
+      order = 'desc'
+    } = query;
     const filter: any = { userId };
 
     if (type) filter.type = type;
-    if (category) filter.category = category;
+
+    if (category) {
+      const categories = category.split(',');
+      if (categories.length > 1) {
+        filter.category = { $in: categories };
+      } else {
+        filter.category = categories[0];
+      }
+    }
+
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);
       if (endDate) filter.date.$lte = new Date(endDate);
+    }
+
+    if (minAmount || maxAmount) {
+      filter.amount = {};
+      if (minAmount) filter.amount.$gte = Number(minAmount);
+      if (maxAmount) filter.amount.$lte = Number(maxAmount);
+    }
+
+    if (search) {
+      filter.description = { $regex: search, $options: 'i' };
     }
 
     const sortObj: any = {};
@@ -104,6 +137,84 @@ export class TransactionsService {
       balance: income - expense - investment,
       categoryBreakdown
     };
+  }
+
+  async generatePdfReport(userId: string, data: TransactionDocument[]): Promise<Buffer> {
+    const user = await this.userModel.findById(userId);
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Header
+      doc.fillColor('#18181b').fontSize(24).text('Financial Report', { align: 'center' });
+      doc.fontSize(10).fillColor('#71717a').text(`Generated on ${format(new Date(), 'MMMM dd, yyyy')}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // User Info
+      doc.fillColor('#18181b').fontSize(12).text(`User: ${user?.name || 'Unknown User'}`);
+      doc.text(`Email: ${user?.email || 'N/A'}`);
+      doc.moveDown(1.5);
+
+      // Summary
+      doc.fontSize(16).text('Summary', { underline: true });
+      doc.moveDown(0.5);
+
+      const totalIncome = data.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+      const totalExpense = data.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      const totalInvestment = data.filter(t => t.type === 'investment').reduce((acc, t) => acc + t.amount, 0);
+
+      doc.fontSize(11).text(`Total Income: ₹${totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.text(`Total Expense: ₹${totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.text(`Total Investment: ₹${totalInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.fillColor(totalIncome - totalExpense - totalInvestment >= 0 ? '#10b981' : '#ef4444')
+        .text(`Net Balance: ₹${(totalIncome - totalExpense - totalInvestment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      doc.moveDown(2);
+
+      // Transactions Table
+      doc.fillColor('#18181b').fontSize(16).text('Transactions', { underline: true });
+      doc.moveDown(1);
+
+      // Table Header
+      const tableTop = doc.y;
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Date', 50, tableTop);
+      doc.text('Description', 130, tableTop);
+      doc.text('Category', 280, tableTop);
+      doc.text('Type', 380, tableTop);
+      doc.text('Amount', 480, tableTop, { align: 'right' });
+
+      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).strokeColor('#e4e4e7').stroke();
+      doc.moveDown(1);
+
+      // Table Body
+      let y = tableTop + 25;
+      doc.font('Helvetica');
+
+      data.forEach((t, i) => {
+        if (y > 700) {
+          doc.addPage();
+          y = 50;
+        }
+
+        doc.fontSize(9).text(format(new Date(t.date), 'MMM dd, yyyy'), 50, y);
+        doc.text(t.description || '-', 130, y, { width: 140, height: 12, ellipsis: true });
+        doc.text(t.category, 280, y);
+        doc.text(t.type, 380, y);
+
+        const amountColor = t.type === 'income' ? '#10b981' : t.type === 'expense' ? '#18181b' : '#8b5cf6';
+        doc.fillColor(amountColor).text(`${t.type === 'expense' ? '-' : '+'}₹${t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 480, y, { align: 'right' });
+        doc.fillColor('#18181b');
+
+        y += 20;
+        doc.moveTo(50, y - 5).lineTo(550, y - 5).strokeColor('#f4f4f5').stroke();
+      });
+
+      doc.end();
+    });
   }
 }
 

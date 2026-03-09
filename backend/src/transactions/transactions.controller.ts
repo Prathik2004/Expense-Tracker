@@ -23,8 +23,8 @@ export class TransactionsController {
   }
 
   @Get('export/csv')
-  async exportCsv(@Request() req: any, @Res() res: Response) {
-    const { data } = await this.transactionsService.findAll(req.user.userId, { limit: 10000 });
+  async exportCsv(@Request() req: any, @Query() query: any, @Res() res: Response) {
+    const { data } = await this.transactionsService.findAll(req.user.userId, { ...query, limit: 10000 });
 
     const csvRows = [
       ['Date', 'Type', 'Category', 'Amount', 'Description'],
@@ -42,6 +42,16 @@ export class TransactionsController {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
     res.send(csvString);
+  }
+
+  @Get('export/pdf')
+  async exportPdf(@Request() req: any, @Query() query: any, @Res() res: Response) {
+    const { data } = await this.transactionsService.findAll(req.user.userId, { ...query, limit: 10000 });
+    const buffer = await this.transactionsService.generatePdfReport(req.user.userId, data);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
+    res.send(buffer);
   }
 
   @Get()
