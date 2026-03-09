@@ -67,8 +67,9 @@ export class WebhooksService {
             });
 
             await transaction.save();
-            this.logger.log(`Successfully auto-logged expense: ${amount} to ${merchant}`);
-            return { success: true, transactionId: transaction._id };
+            const savedTransaction = await this.transactionModel.findById(transaction._id).exec();
+            this.logger.log(`Successfully auto-logged expense: ${amount} to ${merchant}. ID: ${transaction._id}`);
+            return { success: true, transaction: savedTransaction };
         } catch (error) {
             this.logger.error(`Failed to save transaction: ${error.message}`);
             return { success: false, reason: 'Database save failed', error: error.message };
