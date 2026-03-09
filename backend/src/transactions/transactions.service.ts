@@ -47,7 +47,7 @@ export class TransactionsService {
     } = query;
     const filter: any = { userId };
 
-    if (type) filter.type = type;
+    if (type && type !== 'all') filter.type = type;
 
     if (category) {
       const categories = category.split(',');
