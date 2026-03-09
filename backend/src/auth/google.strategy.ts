@@ -22,15 +22,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         accessToken: string,
         refreshToken: string,
         profile: any,
-        done: VerifyCallback,
     ): Promise<any> {
+        console.log('Google Profile:', profile);
         const { name, emails, photos, id } = profile;
         const user = {
             email: emails[0].value,
             name: `${name.givenName} ${name.familyName}`,
-            picture: photos[0].value,
+            picture: photos[0]?.value,
             googleId: id,
         };
-        done(null, user);
+        return user;
     }
 }
