@@ -12,7 +12,7 @@ export class WebhooksController {
     @Post('upi-sms')
     async handleUpiSms(
         @Headers('x-api-key') apiKey: string,
-        @Body() payload: { sender: string; message: string; userId: string },
+        @Body() payload: any,
     ) {
         console.log(`[Webhook] Incoming request from sender: ${payload?.sender}`);
         const validApiKey = this.configService.get<string>('UPI_WEBHOOK_API_KEY');
@@ -22,12 +22,15 @@ export class WebhooksController {
             throw new UnauthorizedException('Invalid API Key');
         }
 
-        if (!payload.message || !payload.userId) {
+        const message = payload.message;
+        const userId = payload.userId || payload.userid;
+
+        if (!message || !userId) {
             console.error(`[Webhook] Bad Request: Missing message or userId`);
             throw new BadRequestException('Message and userId are required');
         }
 
-        const result = await this.webhooksService.processUpiSms(payload);
+        const result = await this.webhooksService.processUpiSms({ ...payload, message, userId });
 
         if (!result.success) {
             console.warn(`[Webhook] Processing failed: ${result.reason}`);
