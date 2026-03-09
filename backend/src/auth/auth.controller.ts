@@ -21,8 +21,12 @@ export class AuthController {
 
     @HttpCode(HttpStatus.OK)
     @Post('login')
-    async login(@Body() loginDto: LoginDto) {
-        return this.authService.login(loginDto.email, loginDto.password);
+    async login(@Body() loginDto: LoginDto, @Request() req: any) {
+        const metadata = {
+            ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+            userAgent: req.headers['user-agent']
+        };
+        return this.authService.login(loginDto.email, loginDto.password, metadata);
     }
 
     @Get('google')
@@ -32,7 +36,11 @@ export class AuthController {
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Request() req: any, @Res() res: Response) {
-        const { access_token } = await this.authService.googleLogin(req.user);
+        const metadata = {
+            ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+            userAgent: req.headers['user-agent']
+        };
+        const { access_token } = await this.authService.googleLogin(req.user, metadata);
         const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
         return res.redirect(`${frontendUrl}/auth-callback?token=${access_token}`);
     }

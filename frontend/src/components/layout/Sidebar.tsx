@@ -11,7 +11,8 @@ import {
     LogOut,
     Wallet,
     BarChart3,
-    HandCoins
+    HandCoins,
+    Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -24,6 +25,7 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
+    { href: '/security', label: 'Security', icon: Shield, adminOnly: true },
 ];
 
 export function Sidebar() {
@@ -42,6 +44,10 @@ export function Sidebar() {
 
             <nav className="flex-1 px-4 space-y-1">
                 {navItems.map((item) => {
+                    const isAdminItem = (item as any).adminOnly;
+                    const user = useAuthStore.getState().user;
+                    if (isAdminItem && user?.email !== 'prathik1611@gmail.com') return null;
+
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
 

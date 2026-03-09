@@ -24,23 +24,26 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     login: async (credentials) => {
         const res = await api.post('/auth/login', credentials);
-        const { access_token, user } = res.data;
+        const { access_token, user, sessionId } = res.data;
         localStorage.setItem('token', access_token);
         localStorage.setItem('user', JSON.stringify(user));
+        if (sessionId) localStorage.setItem('sessionId', sessionId);
         set({ user, token: access_token });
     },
 
     register: async (userData) => {
         const res = await api.post('/auth/register', userData);
-        const { access_token, user } = res.data;
+        const { access_token, user, sessionId } = res.data;
         localStorage.setItem('token', access_token);
         localStorage.setItem('user', JSON.stringify(user));
+        if (sessionId) localStorage.setItem('sessionId', sessionId);
         set({ user, token: access_token });
     },
 
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('sessionId');
         set({ user: null, token: null });
         window.location.href = '/login';
     },

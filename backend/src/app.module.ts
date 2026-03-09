@@ -12,6 +12,7 @@ import { RecurringModule } from './recurring/recurring.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { LendingModule } from './lending/lending.module';
+import { SecurityModule } from './security/security.module';
 
 
 @Module({
@@ -33,6 +34,7 @@ import { LendingModule } from './lending/lending.module';
     BudgetsModule,
     PortfolioModule,
     LendingModule,
+    SecurityModule,
 
   ],
   controllers: [AppController],

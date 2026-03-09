@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Session, SessionSchema } from '../schemas/session.schema';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { GoogleStrategy } from './google.strategy';
       }),
       inject: [ConfigService],
     }),
+    MongooseModule.forFeature([{ name: Session.name, schema: SessionSchema }]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

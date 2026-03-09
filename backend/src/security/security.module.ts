@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Session, SessionSchema } from '../schemas/session.schema';
+import { SecurityService } from './security.service';
+import { SecurityController } from './security.controller';
+
+@Module({
+    imports: [
+        MongooseModule.forFeature([{ name: Session.name, schema: SessionSchema }]),
+    ],
+    providers: [SecurityService],
+    controllers: [SecurityController],
+    exports: [SecurityService],
+})
+export class SecurityModule { }
