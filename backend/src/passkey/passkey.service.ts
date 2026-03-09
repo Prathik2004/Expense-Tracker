@@ -24,11 +24,26 @@ export class PasskeyService {
     private readonly rpName = 'Expensify';
 
     private get rpID() {
-        return this.configService.get('RP_ID') || 'localhost';
+        const rpId = this.configService.get('RP_ID');
+        if (rpId) return rpId;
+
+        // Fallback: extract from FRONTEND_URL if possible
+        const frontendUrl = this.configService.get('FRONTEND_URL');
+        if (frontendUrl) {
+            try {
+                return new URL(frontendUrl).hostname;
+            } catch { /* ignore */ }
+        }
+        return 'localhost';
     }
 
     private get origin() {
-        return this.configService.get('ORIGIN') || 'http://localhost:3000';
+        const origin = this.configService.get('ORIGIN') || this.configService.get('FRONTEND_URL');
+        if (origin) {
+            // Remove trailing slash if it exists
+            return origin.replace(/\/$/, '');
+        }
+        return 'http://localhost:3000';
     }
 
     async getRegistrationOptions(userId: string) {
