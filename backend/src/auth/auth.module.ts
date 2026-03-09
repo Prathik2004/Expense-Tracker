@@ -27,5 +27,6 @@ import { Session, SessionSchema } from '../schemas/session.schema';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],
+  exports: [AuthService],
 })
 export class AuthModule { }

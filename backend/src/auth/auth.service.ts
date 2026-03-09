@@ -42,7 +42,7 @@ export class AuthService {
         return this.generateToken(user, metadata);
     }
 
-    private async generateToken(user: any, metadata?: any) {
+    public async generateToken(user: any, metadata?: any) {
         const sessionId = uuidv4();
 
         let deviceType = 'desktop';

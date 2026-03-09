@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/api';
-import { Shield, Smartphone, Monitor, Globe, Clock, LogOut, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Smartphone, Monitor, Globe, Clock, LogOut, Loader2, AlertCircle, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
+import { startRegistration } from '@simplewebauthn/browser';
 
 export default function SecurityPage() {
     const { user } = useAuthStore();
@@ -55,6 +56,28 @@ export default function SecurityPage() {
             fetchSessions();
         } catch (err) {
             console.error("Failed to logout other devices", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRegisterBiometric = async () => {
+        setIsLoading(true);
+        setError("");
+        try {
+            // 1. Get options from server
+            const optionsRes = await api.get('/passkey/register-options');
+
+            // 2. Trigger browser biometric prompt
+            const regRes = await startRegistration({ optionsJSON: optionsRes.data });
+
+            // 3. Verify with server
+            await api.post('/passkey/verify-registration', regRes);
+
+            alert("Biometric login enabled successfully!");
+        } catch (err: any) {
+            console.error("Biometric registration failed", err);
+            setError(err.message || "Biometric registration failed");
         } finally {
             setIsLoading(false);
         }
@@ -161,6 +184,27 @@ export default function SecurityPage() {
                         </div>
                     ))
                 )}
+            </div>
+
+            <div className="p-6 bg-zinc-100 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 p-3 rounded-xl">
+                            <Fingerprint className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold">Biometric Login</h4>
+                            <p className="text-sm text-zinc-500">Fast, passwordless access using your device's security.</p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={handleRegisterBiometric}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Fingerprint className="w-4 h-4 mr-2" />}
+                        Enable on this Device
+                    </Button>
+                </div>
             </div>
 
             <div className="p-6 bg-zinc-100 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">

@@ -22,6 +22,9 @@ export class User {
 
   @Prop({ default: 0 })
   portfolioValue?: number;
+
+  @Prop()
+  currentChallenge?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

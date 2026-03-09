@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet } from 'lucide-react';
+import { Wallet, Fingerprint, Loader2 } from 'lucide-react';
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
+import { startAuthentication } from '@simplewebauthn/browser';
+import api from '@/lib/api';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -19,6 +21,42 @@ export default function LoginPage() {
 
     const login = useAuthStore((state) => state.login);
     const router = useRouter();
+
+    const handleBiometricLogin = async () => {
+        if (!email) {
+            setError("Please enter your email first to use biometric login.");
+            return;
+        }
+        setIsLoading(true);
+        setError("");
+        try {
+            // 1. Get login options
+            const optionsRes = await api.post('/passkey/login-options', { email });
+
+            // 2. Trigger biometric
+            const authRes = await startAuthentication({ optionsJSON: optionsRes.data });
+
+            // 3. Verify
+            const verifyRes = await api.post('/passkey/verify-login', { email, response: authRes });
+
+            // 4. Success!
+            const { access_token, user, sessionId } = verifyRes.data;
+            localStorage.setItem('token', access_token);
+            localStorage.setItem('user', JSON.stringify(user));
+            if (sessionId) localStorage.setItem('sessionId', sessionId);
+
+            // Update store
+            useAuthStore.getState().setToken(access_token);
+            useAuthStore.getState().setUser(user);
+
+            router.push('/');
+        } catch (err: any) {
+            console.error("Biometric login failed", err);
+            setError(err.response?.data?.message || err.message || "Biometric login failed");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,6 +131,17 @@ export default function LoginPage() {
                         </div>
 
                         <GoogleLoginButton />
+
+                        <Button
+                            variant="outline"
+                            className="w-full border-primary/20 hover:bg-primary/5 text-primary"
+                            type="button"
+                            onClick={handleBiometricLogin}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Fingerprint className="w-4 h-4 mr-2" />}
+                            Sign in with Face ID / Fingerprint
+                        </Button>
 
                         <div className="text-sm text-center text-zinc-500 pt-2">
                             Don't have an account?{' '}
