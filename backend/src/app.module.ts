@@ -12,6 +12,7 @@ import { RecurringModule } from './recurring/recurring.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { LendingModule } from './lending/lending.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { LendingModule } from './lending/lending.module';
     RecurringModule,
     BudgetsModule,
     PortfolioModule,
-    LendingModule
+    LendingModule,
+    WebhooksModule
   ],
   controllers: [AppController],
   providers: [AppService],

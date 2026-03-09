@@ -29,6 +29,9 @@ export class Transaction {
 
     @Prop()
     recurringDay?: number;
+
+    @Prop({ default: 'manual', enum: ['manual', 'auto-sms'] })
+    source: string;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
