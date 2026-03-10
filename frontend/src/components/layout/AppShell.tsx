@@ -140,6 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onSuccess={() => { }}
                 transaction={smartTransactionData}
             />
+            <Toaster richColors position="bottom-right" />
         </div>
     );
 }
