@@ -13,7 +13,6 @@ import { BudgetsModule } from './budgets/budgets.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { LendingModule } from './lending/lending.module';
 import { SecurityModule } from './security/security.module';
-import { PasskeyModule } from './passkey/passkey.module';
 
 
 @Module({
@@ -36,7 +35,6 @@ import { PasskeyModule } from './passkey/passkey.module';
     PortfolioModule,
     LendingModule,
     SecurityModule,
-    PasskeyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

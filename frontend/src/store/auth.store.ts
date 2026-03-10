@@ -30,7 +30,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('token', access_token);
         localStorage.setItem('user', JSON.stringify(user));
         if (sessionId) localStorage.setItem('sessionId', sessionId);
-        sessionStorage.setItem(`biometric_verified_${user.id}`, 'true');
         set({ user, token: access_token });
     },
 

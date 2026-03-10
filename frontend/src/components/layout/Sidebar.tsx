@@ -25,7 +25,6 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
-    { href: '/security', label: 'Security', icon: Shield, adminOnly: true },
 ];
 
 export function Sidebar() {

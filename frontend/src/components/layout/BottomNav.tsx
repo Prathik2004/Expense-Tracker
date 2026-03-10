@@ -20,7 +20,6 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
     { href: '/goals', label: 'Goals', icon: Target },
-    { href: '/security', label: 'Security', icon: Shield, adminOnly: true },
 ];
 
 export function BottomNav() {

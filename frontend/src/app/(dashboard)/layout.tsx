@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { BiometricGuard } from "@/components/auth/BiometricGuard";
 
 export default function DashboardLayout({
     children,
@@ -7,8 +6,6 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <BiometricGuard>
-            <AppShell>{children}</AppShell>
-        </BiometricGuard>
+        <AppShell>{children}</AppShell>
     );
 }
