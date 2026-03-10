@@ -12,6 +12,8 @@ import {
     DialogTitle,
     DialogDescription
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
 interface AddFundsProps {
@@ -29,6 +31,8 @@ interface AddFundsProps {
 
 export function AddFundsModal({ isOpen, onClose, onSuccess, goal }: AddFundsProps) {
     const [amount, setAmount] = useState("");
+    const [assetType, setAssetType] = useState("liquid");
+    const [notes, setNotes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -54,11 +58,16 @@ export function AddFundsModal({ isOpen, onClose, onSuccess, goal }: AddFundsProp
         setError("");
 
         try {
-            const newAmount = Math.min(goal.currentAmount + addAmount, goal.targetAmount);
-            await api.patch(`/goals/${goal._id}`, { currentAmount: newAmount });
+            await api.post(`/goals/${goal._id}/deposit`, {
+                amount: addAmount,
+                assetType: assetType,
+                notes: notes
+            });
             onSuccess();
             onClose();
             setAmount("");
+            setAssetType("liquid");
+            setNotes("");
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to add funds");
         } finally {
@@ -70,6 +79,8 @@ export function AddFundsModal({ isOpen, onClose, onSuccess, goal }: AddFundsProp
         <Dialog open={isOpen} onOpenChange={(open) => {
             if (!open) {
                 setAmount("");
+                setAssetType("liquid");
+                setNotes("");
                 setError("");
                 onClose();
             }
@@ -120,6 +131,36 @@ export function AddFundsModal({ isOpen, onClose, onSuccess, goal }: AddFundsProp
                                 Fill remaining
                             </button>
                         </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-zinc-500">Asset Type</Label>
+                        <Select value={assetType} onValueChange={(val) => setAssetType(val || 'liquid')}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select asset type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="liquid">Liquid Funds / Cash</SelectItem>
+                                <SelectItem value="gold">Gold</SelectItem>
+                                <SelectItem value="silver">Silver</SelectItem>
+                                <SelectItem value="mutual_funds">Mutual Funds</SelectItem>
+                                <SelectItem value="stocks">Stocks</SelectItem>
+                                <SelectItem value="fds">Fixed Deposits</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="notes" className="text-zinc-500">Notes (Optional)</Label>
+                        <Textarea
+                            id="notes"
+                            placeholder="Bank account, platform used, memo..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="resize-none"
+                            rows={3}
+                        />
                     </div>
 
                     <Button

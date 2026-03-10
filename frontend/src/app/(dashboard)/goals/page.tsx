@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
 import { AddFundsModal } from "@/components/goals/AddFundsModal";
-import { Loader2, Plus, Target, Trash2 } from "lucide-react";
+import { GoalContributionsList } from "@/components/goals/GoalContributionsList";
+import { Loader2, Plus, Target, Trash2, List } from "lucide-react";
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState<any[]>([]);
@@ -17,6 +18,10 @@ export default function GoalsPage() {
     // Add Funds Modal state
     const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState<any>(null);
+
+    // Details Modal state
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const [selectedDetailsGoal, setSelectedDetailsGoal] = useState<any>(null);
 
     useEffect(() => {
         fetchGoals();
@@ -46,6 +51,11 @@ export default function GoalsPage() {
     const handleOpenContribute = (goal: any) => {
         setSelectedGoal(goal);
         setIsAddFundsOpen(true);
+    };
+
+    const handleOpenDetails = (goal: any) => {
+        setSelectedDetailsGoal(goal);
+        setIsDetailsOpen(true);
     };
 
     const formatDate = (dateString: string) => {
@@ -122,14 +132,22 @@ export default function GoalsPage() {
                                         <Progress value={percent} className="h-2" />
                                     </div>
                                 </CardContent>
-                                <CardFooter>
+                                <CardFooter className="flex gap-2">
                                     <Button
-                                        className="w-full"
+                                        className="flex-1"
+                                        variant="outline"
+                                        onClick={() => handleOpenDetails(goal)}
+                                    >
+                                        <List className="w-4 h-4 mr-2" />
+                                        Details
+                                    </Button>
+                                    <Button
+                                        className="flex-1"
                                         variant={isCompleted ? "secondary" : "default"}
                                         onClick={() => handleOpenContribute(goal)}
                                         disabled={isCompleted}
                                     >
-                                        {isCompleted ? "Goal Completed 🎉" : "Add Funds"}
+                                        {isCompleted ? "Completed 🎉" : "Add Funds"}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -149,6 +167,12 @@ export default function GoalsPage() {
                 onClose={() => setIsAddFundsOpen(false)}
                 onSuccess={fetchGoals}
                 goal={selectedGoal}
+            />
+
+            <GoalContributionsList
+                isOpen={isDetailsOpen}
+                onClose={() => setIsDetailsOpen(false)}
+                goal={selectedDetailsGoal}
             />
         </div>
     );

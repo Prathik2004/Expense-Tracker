@@ -36,7 +36,18 @@ export class GoalsController {
 
   @HttpCode(HttpStatus.OK)
   @Post(':id/deposit')
-  deposit(@Request() req: any, @Param('id') id: string, @Body('amount') amount: number) {
-    return this.goalsService.deposit(req.user.userId, id, amount);
+  deposit(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('amount') amount: number,
+    @Body('assetType') assetType: string,
+    @Body('notes') notes: string
+  ) {
+    return this.goalsService.deposit(req.user.userId, id, amount, assetType, notes);
+  }
+
+  @Get(':id/contributions')
+  getContributions(@Request() req: any, @Param('id') id: string) {
+    return this.goalsService.getContributions(req.user.userId, id);
   }
 }
