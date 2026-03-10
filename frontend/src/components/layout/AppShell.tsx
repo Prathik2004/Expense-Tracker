@@ -39,6 +39,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 socketUrl = `https://${socketUrl}`;
             }
 
+            // Strip any trailing /api to ensure socket connects to root namespace
+            socketUrl = socketUrl.replace(/\/api\/?$/, '');
+
             const socket = io(socketUrl, {
                 transports: ['websocket', 'polling']
             });
