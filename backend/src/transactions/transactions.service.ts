@@ -226,8 +226,10 @@ export class TransactionsService {
 
       doc.end();
     });
-  async predict(userId: string, query: string): Promise < any > {
-      if(!query || query.length < 2) return null;
+  }
+
+  async predict(userId: string, query: string): Promise<any> {
+    if (!query || query.length < 2) return null;
 
     const matches = await this.transactionModel.aggregate([
       {
