@@ -31,11 +31,13 @@ import {
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
     const [inputValue, setInputValue] = useState("");
+    const [isMounted, setIsMounted] = useState(false);
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const { logout } = useAuthStore();
 
     useEffect(() => {
+        setIsMounted(true);
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -60,6 +62,10 @@ export function CommandPalette() {
 
     // Normal deep search if not adding
     const isSearchCommand = inputValue.trim().length > 0 && !isAddExpenseCommand;
+
+    if (!isMounted) {
+        return null;
+    }
 
     return (
         <CommandDialog open={open} onOpenChange={setOpen}>
