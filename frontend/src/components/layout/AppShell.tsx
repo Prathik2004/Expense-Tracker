@@ -9,6 +9,8 @@ import { Loader2, Moon, Sun, LogOut, Wallet } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { io } from 'socket.io-client';
+import { CommandPalette } from './CommandPalette';
+import { AddTransactionModal } from '@/components/transactions/AddTransactionModal';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
@@ -16,6 +18,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [isMounted, setIsMounted] = useState(false);
     const { theme, setTheme } = useTheme();
+
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [smartTransactionData, setSmartTransactionData] = useState<any>(null);
 
     useEffect(() => {
         setIsMounted(true);
@@ -65,6 +70,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
+    // Listener for Smart Actions from Cmd+K
+    useEffect(() => {
+        const handleOpenSmartAdd = (e: any) => {
+            setSmartTransactionData(e.detail);
+            setIsAddModalOpen(true);
+        };
+        window.addEventListener('open_smart_add_transaction', handleOpenSmartAdd);
+        return () => window.removeEventListener('open_smart_add_transaction', handleOpenSmartAdd);
+    }, []);
+
     if (!isMounted || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -80,6 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
             <Sidebar />
+            <CommandPalette />
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}
@@ -114,6 +130,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
 
             <BottomNav />
+            <AddTransactionModal
+                isOpen={isAddModalOpen}
+                onClose={() => {
+                    setIsAddModalOpen(false);
+                    setSmartTransactionData(null);
+                }}
+                onSuccess={() => { }}
+                transaction={smartTransactionData}
+            />
         </div>
     );
 }
