@@ -36,7 +36,7 @@ const CATEGORIES: Record<string, string[]> = {
 };
 
 export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }: AddTxProps) {
-    const isEdit = !!transaction;
+    const isEdit = !!transaction?._id;
 
     const [type, setType] = useState<"income" | "expense" | "investment">(transaction?.type || "expense");
     const [amount, setAmount] = useState(transaction?.amount?.toString() || "");

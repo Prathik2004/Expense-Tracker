@@ -50,12 +50,12 @@ export function TransactionRow({ transaction, onDelete, onCopy, onEdit }: Transa
                 onDragEnd={handleDragEnd}
                 animate={controls}
                 className="relative z-10 bg-white dark:bg-zinc-950 p-4 flex items-center justify-between touch-pan-y cursor-grab active:cursor-grabbing"
-                onClick={() => onEdit(transaction)}
+                onTap={() => onEdit(transaction)}
             >
                 <div className="flex items-center space-x-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${transaction.type === 'expense' ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/30' :
-                            transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' :
-                                'bg-purple-50 text-purple-600 dark:bg-purple-950/30'
+                        transaction.type === 'income' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' :
+                            'bg-purple-50 text-purple-600 dark:bg-purple-950/30'
                         }`}>
                         <span className="text-xs font-bold">{transaction.category[0]}</span>
                     </div>
@@ -65,8 +65,8 @@ export function TransactionRow({ transaction, onDelete, onCopy, onEdit }: Transa
                     </div>
                 </div>
                 <div className={`font-semibold ${transaction.type === 'expense' ? 'text-zinc-900 dark:text-zinc-100' :
-                        transaction.type === 'income' ? 'text-emerald-600' :
-                            'text-purple-600'
+                    transaction.type === 'income' ? 'text-emerald-600' :
+                        'text-purple-600'
                     }`}>
                     {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toLocaleString('en-IN')}
                 </div>
