@@ -86,7 +86,7 @@ export default function PortfolioPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                            {formatCurrency(totalInvested)}
+                            {isVisible ? formatCurrency(totalInvested) : '••••••'}
                         </div>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Principal amount invested
@@ -131,14 +131,14 @@ export default function PortfolioPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-baseline gap-2">
-                            <div className={`text-3xl font-bold ${hasValuation && roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : hasValuation && roi < 0 ? 'text-rose-600 dark:text-rose-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
-                                {hasValuation ? `${roi >= 0 ? '+' : ''}${formatCurrency(absoluteGain)}` : '₹0'}
+                            <div className={`text-3xl font-bold ${!isVisible ? 'text-zinc-900 dark:text-zinc-100' : hasValuation && roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : hasValuation && roi < 0 ? 'text-rose-600 dark:text-rose-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                                {isVisible ? (hasValuation ? `${roi >= 0 ? '+' : ''}${formatCurrency(absoluteGain)}` : '₹0') : '••••••'}
                             </div>
                         </div>
                         {hasValuation && (
-                            <div className={`flex items-center mt-1 text-sm font-medium ${roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
-                                {roi >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-1" />}
-                                {Math.abs(roi).toFixed(2)}% ROI
+                            <div className={`flex items-center mt-1 text-sm font-medium ${!isVisible ? 'text-zinc-500 dark:text-zinc-400' : roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
+                                {isVisible && (roi >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-1" />)}
+                                {isVisible ? `${Math.abs(roi).toFixed(2)}% ROI` : '•••% ROI'}
                             </div>
                         )}
                         {!hasValuation && (
