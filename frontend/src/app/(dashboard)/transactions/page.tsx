@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import {
     Table,
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { Loader2, Download, Search, Plus, Trash2, Edit2, Filter, ChevronDown, ChevronUp, FileText, X } from "lucide-react";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
+import { toast } from "sonner";
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -38,6 +39,9 @@ export default function TransactionsPage() {
 
     const limit = 10;
 
+    // Undo delete refs
+    const deleteTimeoutRef = useRef<Record<string, any>>({});
+
     useEffect(() => {
         fetchTransactions();
 
@@ -55,6 +59,14 @@ export default function TransactionsPage() {
     useEffect(() => {
         setPage(1);
     }, [type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
+
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        const refs = deleteTimeoutRef.current;
+        return () => {
+            Object.values(refs).forEach(clearTimeout);
+        };
+    }, []);
 
     const fetchTransactions = async () => {
         setIsLoading(true);
@@ -79,13 +91,49 @@ export default function TransactionsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this transaction?")) return;
-        try {
-            await api.delete(`/transactions/${id}`);
-            fetchTransactions();
-        } catch (err) {
-            console.error("Failed to delete transaction", err);
-        }
+        // Optimistic UI: Find and temporarily remove
+        const transactionToDelete = transactions.find(t => t._id === id);
+        if (!transactionToDelete) return;
+
+        // Immediately hide from UI
+        setTransactions(prev => prev.filter(t => t._id !== id));
+        setTotal(prev => prev - 1);
+
+        // Show toast with Undo
+        toast.info("Transaction deleted", {
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Restore to UI
+                    if (deleteTimeoutRef.current[id]) {
+                        clearTimeout(deleteTimeoutRef.current[id]);
+                        delete deleteTimeoutRef.current[id];
+
+                        // We need to fetch or manually insert back. 
+                        // Fetching is safer to maintain order/pagination.
+                        fetchTransactions();
+                        toast.success("Restored transaction");
+                    }
+                },
+            },
+            duration: 5000,
+            onAutoClose: async () => {
+                // Final deletion after 5s
+                try {
+                    await api.delete(`/transactions/${id}`);
+                    delete deleteTimeoutRef.current[id];
+                } catch (err) {
+                    console.error("Failed to delete transaction", err);
+                    toast.error("Failed to delete transaction from server");
+                    fetchTransactions(); // Revert UI if server fails
+                }
+            }
+        });
+
+        // Store timeout ref
+        deleteTimeoutRef.current[id] = setTimeout(() => {
+            // The logic is handled by onAutoClose of the toast
+        }, 5000);
     };
 
     const handleEdit = (tx: any) => {

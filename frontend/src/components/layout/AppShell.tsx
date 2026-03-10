@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { io } from 'socket.io-client';
 import { CommandPalette } from './CommandPalette';
 import { AddTransactionModal } from '@/components/transactions/AddTransactionModal';
+import { Toaster } from 'sonner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
