@@ -16,7 +16,7 @@ import { ConfigService } from '@nestjs/config';
 export class PasskeyService {
     constructor(
         @InjectModel(User.name) private userModel: Model<UserDocument>,
-        @InjectModel(Authenticator.name) private authenticatorModel: Model<AuthenticatorDocument>,
+        @InjectModel(Authenticator.name) private authenticatorModel: any,
         private authService: AuthService,
         private configService: ConfigService,
     ) { }
@@ -46,49 +46,49 @@ export class PasskeyService {
         return 'http://localhost:3000';
     }
 
-    async getRegistrationOptions(userId: string) {
+    async getRegistrationOptions(userId: string, currentRpId?: string) {
         const user = await this.userModel.findById(userId).exec();
         if (!user) throw new UnauthorizedException('User not found');
 
+        const activeRpId = currentRpId || this.rpID;
         const userAuthenticators = await this.authenticatorModel.find({ userId: user._id.toString() }).exec();
 
         const options = await generateRegistrationOptions({
             rpName: this.rpName,
-            rpID: this.rpID,
+            rpID: activeRpId,
             userID: Buffer.from(user._id.toString()),
             userName: user.email,
             attestationType: 'none',
-            /**
-             * Authenticators registered by the user so far.
-             */
-            excludeCredentials: userAuthenticators.map(auth => ({
-                id: auth.credentialID, // Already base64url or should be handled by browser
+            excludeCredentials: userAuthenticators.map((auth: any) => ({
+                id: auth.credentialID,
                 type: 'public-key',
-                transports: auth.transports as any[],
+                transports: auth.transports,
             })),
             authenticatorSelection: {
                 residentKey: 'preferred',
                 userVerification: 'preferred',
-                authenticatorAttachment: 'platform', // Fingerprint, FaceID, etc.
+                authenticatorAttachment: 'platform',
             },
         });
 
-        // Store the challenge for verification
         user.currentChallenge = options.challenge;
         await user.save();
 
         return options;
     }
 
-    async verifyRegistration(userId: string, body: any) {
+    async verifyRegistration(userId: string, body: any, currentRpId?: string, currentOrigin?: string) {
         const user = await this.userModel.findById(userId).exec();
         if (!user || !user.currentChallenge) throw new UnauthorizedException('Registration session expired');
+
+        const activeRpId = currentRpId || this.rpID;
+        const activeOrigin = currentOrigin || this.origin;
 
         const verification = await verifyRegistrationResponse({
             response: body,
             expectedChallenge: user.currentChallenge,
-            expectedOrigin: this.origin,
-            expectedRPID: this.rpID,
+            expectedOrigin: activeOrigin,
+            expectedRPID: activeRpId,
         });
 
         if (verification.verified && verification.registrationInfo) {
@@ -112,32 +112,35 @@ export class PasskeyService {
         throw new UnauthorizedException('Verification failed');
     }
 
-    async getAuthenticationOptions(email: string) {
+    async getAuthenticationOptions(email: string, currentRpId?: string) {
         const user = await this.userModel.findOne({ email }).exec();
         if (!user) throw new UnauthorizedException('User not found');
 
+        const activeRpId = currentRpId || this.rpID;
         const userAuthenticators = await this.authenticatorModel.find({ userId: user._id.toString() }).exec();
 
         const options = await generateAuthenticationOptions({
-            rpID: this.rpID,
-            allowCredentials: userAuthenticators.map(auth => ({
+            rpID: activeRpId,
+            allowCredentials: userAuthenticators.map((auth: any) => ({
                 id: auth.credentialID,
                 type: 'public-key',
-                transports: auth.transports as any[],
+                transports: auth.transports,
             })),
             userVerification: 'preferred',
         });
 
-        // Store the challenge for verification
         user.currentChallenge = options.challenge;
         await user.save();
 
         return options;
     }
 
-    async verifyAuthentication(email: string, body: any, metadata: any) {
+    async verifyAuthentication(email: string, body: any, metadata: any, currentRpId?: string, currentOrigin?: string) {
         const user = await this.userModel.findOne({ email }).exec();
         if (!user || !user.currentChallenge) throw new UnauthorizedException('Authentication session expired');
+
+        const activeRpId = currentRpId || this.rpID;
+        const activeOrigin = currentOrigin || this.origin;
 
         const authenticator = await this.authenticatorModel.findOne({
             credentialID: body.id
@@ -148,13 +151,13 @@ export class PasskeyService {
         const verification = await verifyAuthenticationResponse({
             response: body,
             expectedChallenge: user.currentChallenge,
-            expectedOrigin: this.origin,
-            expectedRPID: this.rpID,
+            expectedOrigin: activeOrigin,
+            expectedRPID: activeRpId,
             authenticator: {
                 credentialID: authenticator.credentialID,
                 credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, 'base64url'),
                 counter: authenticator.counter,
-                transports: authenticator.transports as any[],
+                transports: authenticator.transports,
             },
         } as any);
 
@@ -171,5 +174,9 @@ export class PasskeyService {
         }
 
         throw new UnauthorizedException('Verification failed');
+    }
+    async hasAuthenticators(userId: string) {
+        const count = await this.authenticatorModel.countDocuments({ userId: userId.toString() }).exec();
+        return count > 0;
     }
 }

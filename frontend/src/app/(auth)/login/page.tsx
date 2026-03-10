@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
@@ -20,7 +20,16 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     const login = useAuthStore((state) => state.login);
+    const setToken = useAuthStore((state) => state.setToken);
+    const setUser = useAuthStore((state) => state.setUser);
     const router = useRouter();
+    const [isBiometricSupported, setIsBiometricSupported] = useState(true);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !window.PublicKeyCredential) {
+            setIsBiometricSupported(false);
+        }
+    }, []);
 
     const handleBiometricLogin = async () => {
         if (!email) {
@@ -46,13 +55,18 @@ export default function LoginPage() {
             if (sessionId) localStorage.setItem('sessionId', sessionId);
 
             // Update store
-            useAuthStore.getState().setToken(access_token);
-            useAuthStore.getState().setUser(user);
+            setToken(access_token);
+            setUser(user);
 
             router.push('/');
         } catch (err: any) {
             console.error("Biometric login failed", err);
-            setError(err.response?.data?.message || err.message || "Biometric login failed");
+            const msg = err.response?.data?.message || err.message || "";
+            if (msg.includes("no passkey available") || err.name === "NotAllowedError") {
+                setError("No passkey found for this email. Please sign in with your password first and enable biometric login in Security Settings.");
+            } else {
+                setError(msg || "Biometric login failed");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -132,16 +146,18 @@ export default function LoginPage() {
 
                         <GoogleLoginButton />
 
-                        <Button
-                            variant="outline"
-                            className="w-full border-primary/20 hover:bg-primary/5 text-primary"
-                            type="button"
-                            onClick={handleBiometricLogin}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Fingerprint className="w-4 h-4 mr-2" />}
-                            Sign in with Face ID / Fingerprint
-                        </Button>
+                        {isBiometricSupported && (
+                            <Button
+                                variant="outline"
+                                className="w-full border-primary/20 hover:bg-primary/5 text-primary"
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Fingerprint className="w-4 h-4 mr-2" />}
+                                Sign in with Face ID / Fingerprint
+                            </Button>
+                        )}
 
                         <div className="text-sm text-center text-zinc-500 pt-2">
                             Don't have an account?{' '}
