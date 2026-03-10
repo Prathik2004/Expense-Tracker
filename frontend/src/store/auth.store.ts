@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import api from '../lib/api';
 
 interface User {
+    _id?: string;
     id: string;
     name: string;
     email: string;

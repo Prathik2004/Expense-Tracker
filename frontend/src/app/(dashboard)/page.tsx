@@ -49,6 +49,15 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchData();
+
+        const handleSync = () => {
+            fetchData();
+        };
+
+        window.addEventListener('sync_transactions', handleSync);
+        return () => {
+            window.removeEventListener('sync_transactions', handleSync);
+        };
     }, []);
 
     // Handle URL query for quick add

@@ -36,6 +36,15 @@ export default function PortfolioPage() {
 
     useEffect(() => {
         fetchData();
+
+        const handleSync = () => {
+            fetchData();
+        };
+
+        window.addEventListener('sync_transactions', handleSync);
+        return () => {
+            window.removeEventListener('sync_transactions', handleSync);
+        };
     }, []);
 
     const formatCurrency = (amount: number) => {

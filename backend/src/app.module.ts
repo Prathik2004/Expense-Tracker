@@ -13,7 +13,7 @@ import { BudgetsModule } from './budgets/budgets.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { LendingModule } from './lending/lending.module';
 import { SecurityModule } from './security/security.module';
-
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -35,6 +35,7 @@ import { SecurityModule } from './security/security.module';
     PortfolioModule,
     LendingModule,
     SecurityModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

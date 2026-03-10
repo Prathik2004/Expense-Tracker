@@ -40,6 +40,15 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         fetchTransactions();
+
+        const handleSync = () => {
+            fetchTransactions();
+        };
+
+        window.addEventListener('sync_transactions', handleSync);
+        return () => {
+            window.removeEventListener('sync_transactions', handleSync);
+        };
     }, [page, type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
 
     // Reset to page 1 when filters change

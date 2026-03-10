@@ -7,12 +7,14 @@ import { Transaction, TransactionDocument } from '../schemas/transaction.schema'
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     @InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private eventsGateway: EventsGateway
   ) { }
 
   async create(userId: string, createTransactionDto: CreateTransactionDto): Promise<TransactionDocument> {
@@ -20,7 +22,9 @@ export class TransactionsService {
       ...createTransactionDto,
       userId,
     });
-    return createdTransaction.save();
+    const saved = await createdTransaction.save();
+    this.eventsGateway.emitToUser(userId, 'transaction_added', saved);
+    return saved;
   }
 
   async createBulk(userId: string, createTransactionDtos: CreateTransactionDto[]): Promise<any> {
@@ -28,7 +32,9 @@ export class TransactionsService {
       ...dto,
       userId,
     }));
-    return this.transactionModel.insertMany(transactionsToInsert);
+    const inserted = await this.transactionModel.insertMany(transactionsToInsert);
+    this.eventsGateway.emitToUser(userId, 'transactions_bulk_added', inserted);
+    return inserted;
   }
 
   async findAll(userId: string, query: any): Promise<{ data: TransactionDocument[], total: number }> {
@@ -103,12 +109,14 @@ export class TransactionsService {
       { new: true }
     ).exec();
     if (!transaction) throw new NotFoundException('Transaction not found');
+    this.eventsGateway.emitToUser(userId, 'transaction_updated', transaction);
     return transaction as any;
   }
 
   async remove(userId: string, id: string): Promise<void> {
     const result = await this.transactionModel.deleteOne({ _id: id, userId } as any).exec();
     if (result.deletedCount === 0) throw new NotFoundException('Transaction not found');
+    this.eventsGateway.emitToUser(userId, 'transaction_deleted', { id });
   }
 
   async getSummary(userId: string, month: number, year: number): Promise<any> {

@@ -8,6 +8,7 @@ import { BottomNav } from './BottomNav';
 import { Loader2, Moon, Sun, LogOut, Wallet } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { io } from 'socket.io-client';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
@@ -28,6 +29,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }
         }
     }, [user, isLoading, router, pathname, isMounted]);
+
+    // WebSocket real-time sync setup
+    useEffect(() => {
+        if (user && user._id) {
+            const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            const socket = io(socketUrl);
+
+            socket.on('connect', () => {
+                socket.emit('join_room', user._id);
+            });
+
+            const handleSync = () => {
+                window.dispatchEvent(new CustomEvent('sync_transactions'));
+            };
+
+            socket.on('transaction_added', handleSync);
+            socket.on('transaction_updated', handleSync);
+            socket.on('transaction_deleted', handleSync);
+            socket.on('transactions_bulk_added', handleSync);
+
+            return () => {
+                socket.disconnect();
+            };
+        }
+    }, [user]);
 
     if (!isMounted || isLoading) {
         return (
