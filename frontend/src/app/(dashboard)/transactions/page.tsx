@@ -15,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Loader2, Download, Search, Plus, Trash2, Edit2, Filter, ChevronDown, ChevronUp, FileText, X } from "lucide-react";
+import { Plus, Search, Filter, Download, FileText, ChevronDown, ChevronUp, X, Loader2, Edit2, Trash2, Copy } from "lucide-react";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
+import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { toast } from "sonner";
 
 export default function TransactionsPage() {
@@ -108,6 +109,16 @@ export default function TransactionsPage() {
     const handleEdit = (tx: any) => {
         setEditingTransaction(tx);
         setIsModalOpen(true);
+    };
+
+    const handleCopy = (tx: any) => {
+        // Create a copy without the ID
+        const { _id, createdAt, updatedAt, ...rest } = tx;
+        setEditingTransaction(rest);
+        setIsModalOpen(true);
+        toast.info("Transaction details copied", {
+            description: "Review and save to duplicate."
+        });
     };
 
     const getQueryParams = () => {
@@ -305,7 +316,29 @@ export default function TransactionsPage() {
             </div>
 
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="md:hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {isLoading ? (
+                        <div className="p-8 text-center">
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+                        </div>
+                    ) : transactions.length === 0 ? (
+                        <div className="p-8 text-center text-zinc-500">
+                            No transactions found.
+                        </div>
+                    ) : (
+                        transactions.map((tx) => (
+                            <TransactionRow
+                                key={tx._id}
+                                transaction={tx}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onCopy={handleCopy}
+                            />
+                        ))
+                    )}
+                </div>
+
+                <div className="hidden md:block">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
@@ -360,6 +393,9 @@ export default function TransactionsPage() {
                                             <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500" onClick={() => handleEdit(tx)}>
                                                     <Edit2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500" onClick={() => handleCopy(tx)}>
+                                                    <Copy className="w-3.5 h-3.5" />
                                                 </Button>
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" onClick={() => handleDelete(tx._id)}>
                                                     <Trash2 className="w-3.5 h-3.5" />
