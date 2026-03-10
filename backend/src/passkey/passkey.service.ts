@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { Authenticator, AuthenticatorDocument } from '../schemas/authenticator.schema';
 import {
@@ -51,7 +51,7 @@ export class PasskeyService {
         if (!user) throw new UnauthorizedException('User not found');
 
         const activeRpId = currentRpId || this.rpID;
-        const userAuthenticators = await this.authenticatorModel.find({ userId: user._id.toString() }).exec();
+        const userAuthenticators = await this.authenticatorModel.find({ userId: new Types.ObjectId(user._id.toString()) }).exec();
 
         const options = await generateRegistrationOptions({
             rpName: this.rpName,
@@ -96,7 +96,7 @@ export class PasskeyService {
 
             // Save the new authenticator
             await this.authenticatorModel.create({
-                userId,
+                userId: new Types.ObjectId(userId),
                 credentialID: Buffer.from(credential.id).toString('base64url'),
                 credentialPublicKey: Buffer.from(credential.publicKey).toString('base64url'),
                 counter: credential.counter,
@@ -117,7 +117,7 @@ export class PasskeyService {
         if (!user) throw new UnauthorizedException('User not found');
 
         const activeRpId = currentRpId || this.rpID;
-        const userAuthenticators = await this.authenticatorModel.find({ userId: user._id.toString() }).exec();
+        const userAuthenticators = await this.authenticatorModel.find({ userId: new Types.ObjectId(user._id.toString()) }).exec();
 
         const options = await generateAuthenticationOptions({
             rpID: activeRpId,
@@ -176,7 +176,7 @@ export class PasskeyService {
         throw new UnauthorizedException('Verification failed');
     }
     async hasAuthenticators(userId: string) {
-        const count = await this.authenticatorModel.countDocuments({ userId: userId.toString() }).exec();
+        const count = await this.authenticatorModel.countDocuments({ userId: new Types.ObjectId(userId) }).exec();
         return count > 0;
     }
 }
