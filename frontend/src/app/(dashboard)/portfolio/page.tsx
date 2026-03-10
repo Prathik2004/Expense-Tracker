@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Loader2, IndianRupee, PieChart, ArrowUpRight, ArrowDownRight, Edit3 } from "lucide-react";
+import { Loader2, IndianRupee, PieChart, ArrowUpRight, ArrowDownRight, Edit3, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UpdateValuationModal } from "@/components/dashboard/UpdateValuationModal";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -13,6 +13,7 @@ export default function PortfolioPage() {
     const [investments, setInvestments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isValuationOpen, setIsValuationOpen] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
 
     const [holdings, setHoldings] = useState<any[]>([]);
 
@@ -96,17 +97,26 @@ export default function PortfolioPage() {
                 <Card className="border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-zinc-950">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium tracking-tight text-purple-700 dark:text-purple-400">Current Valuation</CardTitle>
-                        <button
-                            onClick={() => setIsValuationOpen(true)}
-                            className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md text-purple-600 dark:text-purple-400 transition-colors"
-                            title="Update Valuation"
-                        >
-                            <Edit3 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center space-x-1">
+                            <button
+                                onClick={() => setIsVisible(!isVisible)}
+                                className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md text-purple-600 dark:text-purple-400 transition-colors"
+                                title={isVisible ? "Hide Valuation" : "Show Valuation"}
+                            >
+                                {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                            <button
+                                onClick={() => setIsValuationOpen(true)}
+                                className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md text-purple-600 dark:text-purple-400 transition-colors"
+                                title="Update Valuation"
+                            >
+                                <Edit3 className="h-4 w-4" />
+                            </button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-purple-700 dark:text-purple-400">
-                            {hasValuation ? formatCurrency(portfolioValue) : 'Not set'}
+                            {hasValuation ? (isVisible ? formatCurrency(portfolioValue) : '••••••') : 'Not set'}
                         </div>
                         <p className="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">
                             Based on manual updates
