@@ -231,11 +231,14 @@ export class TransactionsService {
   async predict(userId: string, query: string): Promise<any> {
     if (!query || query.length < 2) return null;
 
+    // Escape regex special characters
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     const matches = await this.transactionModel.aggregate([
       {
         $match: {
           userId: new Types.ObjectId(userId),
-          description: { $regex: query, $options: 'i' }
+          description: { $regex: '^' + escapedQuery, $options: 'i' }
         }
       },
       {
@@ -254,6 +257,11 @@ export class TransactionsService {
             { $group: { _id: '$description', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 1 }
+          ],
+          types: [
+            { $group: { _id: '$type', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 }
           ]
         }
       }
@@ -263,8 +271,8 @@ export class TransactionsService {
     return {
       category: result.categories[0]?._id || null,
       amount: result.amounts[0]?._id || null,
-      description: result.descriptions[0]?._id || null
+      description: result.descriptions[0]?._id || null,
+      type: result.types[0]?._id || null
     };
   }
 }
-

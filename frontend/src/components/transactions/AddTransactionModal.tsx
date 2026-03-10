@@ -78,6 +78,11 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                 const prediction = res.data;
 
                 if (prediction && prediction.description) {
+                    // Update type first if available/different, as it affects category list
+                    if (prediction.type && prediction.type !== type) {
+                        setType(prediction.type);
+                    }
+
                     // If prediction description matches current partially, auto-complete
                     if (prediction.description.toLowerCase().startsWith(description.toLowerCase()) &&
                         prediction.description.toLowerCase() !== description.toLowerCase()) {
@@ -101,7 +106,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
         }, 600);
 
         return () => clearTimeout(timeoutId);
-    }, [description, isEdit]);
+    }, [description, isEdit, type]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
