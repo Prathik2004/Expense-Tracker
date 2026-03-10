@@ -226,6 +226,43 @@ export class TransactionsService {
 
       doc.end();
     });
+  async predict(userId: string, query: string): Promise < any > {
+      if(!query || query.length < 2) return null;
+
+    const matches = await this.transactionModel.aggregate([
+      {
+        $match: {
+          userId: new Types.ObjectId(userId),
+          description: { $regex: query, $options: 'i' }
+        }
+      },
+      {
+        $facet: {
+          categories: [
+            { $group: { _id: '$category', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 }
+          ],
+          amounts: [
+            { $group: { _id: '$amount', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 }
+          ],
+          descriptions: [
+            { $group: { _id: '$description', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 }
+          ]
+        }
+      }
+    ]);
+
+    const result = matches[0];
+    return {
+      category: result.categories[0]?._id || null,
+      amount: result.amounts[0]?._id || null,
+      description: result.descriptions[0]?._id || null
+    };
   }
 }
 

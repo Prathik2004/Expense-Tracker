@@ -49,6 +49,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
     // Custom category logic
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategory, setNewCategory] = useState("");
+    const [predictedAmount, setPredictedAmount] = useState<number | null>(null);
 
     // Sync form state when transaction changes or modal opens
     useEffect(() => {
@@ -60,8 +61,47 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
             setDate(transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             setIsAddingCategory(false);
             setNewCategory("");
+            setPredictedAmount(null);
         }
     }, [isOpen, transaction]);
+
+    // Smart Fill Prediction Logic
+    useEffect(() => {
+        if (isEdit || !description || description.length < 2) {
+            setPredictedAmount(null);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const res = await api.get(`/transactions/predict?q=${description}`);
+                const prediction = res.data;
+
+                if (prediction && prediction.description) {
+                    // If prediction description matches current partially, auto-complete
+                    if (prediction.description.toLowerCase().startsWith(description.toLowerCase()) &&
+                        prediction.description.toLowerCase() !== description.toLowerCase()) {
+
+                        setDescription(prediction.description);
+                        if (prediction.category) {
+                            setCategory(prediction.category);
+                        }
+                        if (prediction.amount) {
+                            setPredictedAmount(prediction.amount);
+                        }
+                    } else if (prediction.description.toLowerCase() === description.toLowerCase()) {
+                        // Just update category and amount suggestion if it's already full
+                        if (prediction.category) setCategory(prediction.category);
+                        if (prediction.amount) setPredictedAmount(prediction.amount);
+                    }
+                }
+            } catch (err) {
+                console.error("Prediction failed", err);
+            }
+        }, 600);
+
+        return () => clearTimeout(timeoutId);
+    }, [description, isEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,12 +186,17 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="amount" className="text-zinc-500">Amount (₹)</Label>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="amount" className="text-zinc-500">Amount (₹)</Label>
+                            {predictedAmount && !amount && (
+                                <span className="text-[10px] text-zinc-400 animate-pulse">Suggested: ₹{predictedAmount}</span>
+                            )}
+                        </div>
                         <Input
                             id="amount"
                             type="number"
                             inputMode="decimal"
-                            placeholder="0.00"
+                            placeholder={predictedAmount ? predictedAmount.toString() : "0.00"}
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             className="text-3xl h-14 font-semibold px-4 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"

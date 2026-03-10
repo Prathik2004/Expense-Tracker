@@ -70,6 +70,11 @@ export class TransactionsController {
     return this.transactionsService.update(req.user.userId, id, updateTransactionDto);
   }
 
+  @Get('predict')
+  predict(@Request() req: any, @Query('q') q: string) {
+    return this.transactionsService.predict(req.user.userId, q);
+  }
+
   @Delete(':id')
   remove(@Request() req: any, @Param('id') id: string) {
     return this.transactionsService.remove(req.user.userId, id);
