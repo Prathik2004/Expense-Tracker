@@ -33,8 +33,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // WebSocket real-time sync setup
     useEffect(() => {
         if (user && user._id) {
-            const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-            const socket = io(socketUrl);
+            let socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            // If it doesn't start with http, and it's not localhost, prepend https://
+            if (!socketUrl.startsWith('http') && !socketUrl.includes('localhost')) {
+                socketUrl = `https://${socketUrl}`;
+            }
+
+            const socket = io(socketUrl, {
+                transports: ['websocket', 'polling']
+            });
 
             socket.on('connect', () => {
                 socket.emit('join_room', user._id);
