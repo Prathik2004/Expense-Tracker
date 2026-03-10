@@ -1,3 +1,5 @@
+import { evaluateMath } from "./mathParser";
+
 /**
  * Parses a "magic" string into transaction components.
  * Format: "120 food office canteen" -> { amount: 120, category: "Food", description: "office canteen" }
@@ -9,10 +11,17 @@ export function parseMagicInput(input: string, categories: string[]) {
     let foundCategory = "";
     const descriptionParts: string[] = [];
 
-    // 1. Find the first number (amount)
-    const amountIndex = parts.findIndex(p => !isNaN(Number(p)));
+    // 1. Find the first number or math expression (amount)
+    // A math expression might look like "1500/3" or "450+120"
+    const amountIndex = parts.findIndex(p => {
+        // Check if it's a number or contains operators
+        return !isNaN(Number(p)) || /[+*/-]/.test(p);
+    });
+
     if (amountIndex !== -1) {
-        amount = parseFloat(parts[amountIndex]);
+        const part = parts[amountIndex];
+        const evaluated = evaluateMath(part);
+        amount = evaluated !== null ? evaluated : (parseFloat(part) || 0);
         // Remove amount from parts to simplify remaining extraction
         parts.splice(amountIndex, 1);
     }

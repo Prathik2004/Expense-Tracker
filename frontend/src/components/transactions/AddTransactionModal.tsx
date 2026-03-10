@@ -21,6 +21,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { evaluateMath } from "@/lib/mathParser";
 
 interface AddTxProps {
     isOpen: boolean;
@@ -121,9 +122,10 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
         setError("");
 
         try {
+            const evaluatedAmount = evaluateMath(amount) || parseFloat(amount) || 0;
             const data = {
                 type,
-                amount: parseFloat(amount),
+                amount: evaluatedAmount,
                 category: finalCategory,
                 description,
                 date: new Date(date).toISOString()
@@ -193,21 +195,28 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="amount" className="text-zinc-500">Amount (₹)</Label>
-                            {predictedAmount && !amount && (
-                                <span className="text-[10px] text-zinc-400 animate-pulse">Suggested: ₹{predictedAmount}</span>
-                            )}
+                            <div className="flex flex-col items-end">
+                                {predictedAmount && !amount && (
+                                    <span className="text-[10px] text-zinc-400 animate-pulse">Suggested: ₹{predictedAmount}</span>
+                                )}
+                                {amount && (evaluateMath(amount) !== null && evaluateMath(amount) !== parseFloat(amount)) && (
+                                    <span className="text-[10px] text-blue-500 font-medium">Result: ₹{evaluateMath(amount)?.toLocaleString('en-IN')}</span>
+                                )}
+                            </div>
                         </div>
                         <Input
                             id="amount"
-                            type="number"
+                            type="text"
                             inputMode="decimal"
                             placeholder={predictedAmount ? predictedAmount.toString() : "0.00"}
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
+                            onBlur={() => {
+                                const result = evaluateMath(amount);
+                                if (result !== null) setAmount(result.toString());
+                            }}
                             className="text-3xl h-14 font-semibold px-4 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
                             required
-                            min="0"
-                            step="0.01"
                             autoFocus={isEdit}
                         />
                     </div>
