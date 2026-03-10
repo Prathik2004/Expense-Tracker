@@ -192,7 +192,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                         </div>
                     )}
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 group/amount">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="amount" className="text-zinc-500">Amount (₹)</Label>
                             <div className="flex flex-col items-end">
@@ -200,10 +200,27 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                     <span className="text-[10px] text-zinc-400 animate-pulse">Suggested: ₹{predictedAmount}</span>
                                 )}
                                 {amount && (evaluateMath(amount) !== null && evaluateMath(amount) !== parseFloat(amount)) && (
-                                    <span className="text-[10px] text-blue-500 font-medium">Result: ₹{evaluateMath(amount)?.toLocaleString('en-IN')}</span>
+                                    <span className="text-[10px] text-blue-500 font-medium tracking-tight">Result: ₹{evaluateMath(amount)?.toLocaleString('en-IN')}</span>
                                 )}
                             </div>
                         </div>
+
+                        {/* Math Accessory Bar (Visible on mobile keyboard lack of operators) */}
+                        <div className="flex gap-2 pb-1 overflow-x-auto no-scrollbar">
+                            {['+', '-', '*', '/'].map((op) => (
+                                <Button
+                                    key={op}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-10 flex-shrink-0 border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                    onClick={() => setAmount((prev: string) => prev + op)}
+                                >
+                                    {op === '*' ? '×' : op === '/' ? '÷' : op}
+                                </Button>
+                            ))}
+                        </div>
+
                         <Input
                             id="amount"
                             type="text"
@@ -215,7 +232,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                 const result = evaluateMath(amount);
                                 if (result !== null) setAmount(result.toString());
                             }}
-                            className="text-3xl h-14 font-semibold px-4 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
+                            className="text-3xl h-14 font-semibold px-4 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
                             required
                             autoFocus={isEdit}
                         />
