@@ -7,7 +7,14 @@ import { CategoryExpenseChart } from "@/components/dashboard/CategoryExpenseChar
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickAddFAB } from "@/components/transactions/QuickAddFAB";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
+import { MagicInput } from "@/components/dashboard/MagicInput";
 import { Loader2 } from "lucide-react";
+
+const CATEGORIES_LIST = [
+    "Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping",
+    "Salary", "Freelance", "Gift", "Refund",
+    "Indian Stocks", "US Stocks", "Mutual Funds", "Gold", "Silver", "Bonds", "Crypto", "Other"
+];
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<any>(null);
@@ -34,6 +41,15 @@ export default function DashboardPage() {
 
     const handleEdit = (tx: any) => {
         setEditingTransaction(tx);
+        setIsAddOpen(true);
+    };
+
+    const handleMagicAdd = (data: any) => {
+        setEditingTransaction({
+            ...data,
+            type: 'expense', // Default to expense for magic add, can be changed in modal
+            date: new Date().toISOString()
+        });
         setIsAddOpen(true);
     };
 
@@ -89,6 +105,8 @@ export default function DashboardPage() {
                     Your financial summary for the current month.
                 </p>
             </div>
+
+            <MagicInput onMagicAdd={handleMagicAdd} categories={CATEGORIES_LIST} />
 
             <KPICards
                 balance={summary?.balance || 0}
