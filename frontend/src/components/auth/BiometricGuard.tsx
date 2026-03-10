@@ -8,11 +8,15 @@ import { Fingerprint, Lock, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function BiometricGuard({ children }: { children: React.ReactNode }) {
-    const { user, token, isLoading } = useAuthStore();
+    const { user, token, isLoading, checkAuth } = useAuthStore();
     const [isVerified, setIsVerified] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
     const [error, setError] = useState("");
     const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
     useEffect(() => {
         const checkBiometricStatus = async () => {
