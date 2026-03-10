@@ -55,13 +55,13 @@ export function CommandPalette() {
         command();
     };
 
-    // Regex checking for "Add [Amount] for [Description]"
-    // e.g. "Add 500 for Food", "Add 2000 for Rent"
-    const addExpenseMatch = inputValue.match(/^add\s+(?:rs\.?|₹)?\s*(\d+)\s+for\s+(.*)/i);
+    // Flexible regex for "Add [Amount] [preposition?] [Description]"
+    // Matches: "Add 500 Food", "Add 500 for Food", "Add 500 to Rent", etc.
+    const addExpenseMatch = inputValue.match(/^add\s+(?:rs\.?|₹)?\s*(\d+)(?:\s+(?:for|to|on))?\s+(.*)/i);
     const isAddExpenseCommand = !!addExpenseMatch;
 
-    // Normal deep search if not adding
-    const isSearchCommand = inputValue.trim().length > 0 && !isAddExpenseCommand;
+    // Search command should show if there's input and it's not a clear add command
+    const isSearchCommand = inputValue.trim().length > 0;
 
     if (!isMounted) {
         return null;
@@ -77,20 +77,10 @@ export function CommandPalette() {
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
 
-                {isSearchCommand && (
-                    <CommandGroup heading="Search">
-                        <CommandItem
-                            onSelect={() => runCommand(() => router.push(`/transactions?search=${encodeURIComponent(inputValue.trim())}`))}
-                        >
-                            <Search className="mr-2 h-4 w-4" />
-                            <span>Search transactions for &quot;{inputValue.trim()}&quot;</span>
-                        </CommandItem>
-                    </CommandGroup>
-                )}
-
                 {isAddExpenseCommand && addExpenseMatch && (
                     <CommandGroup heading="Smart Actions">
                         <CommandItem
+                            value={`add ${addExpenseMatch[1]} ${addExpenseMatch[2]}`}
                             onSelect={() => runCommand(() => {
                                 const amount = addExpenseMatch[1];
                                 const description = addExpenseMatch[2];
@@ -109,49 +99,57 @@ export function CommandPalette() {
                     </CommandGroup>
                 )}
 
-                {!inputValue && (
-                    <CommandGroup heading="Navigation">
-                        <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            <span>Dashboard</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/transactions"))}>
-                            <ListOrdered className="mr-2 h-4 w-4" />
-                            <span>Transactions</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/portfolio"))}>
-                            <PieChart className="mr-2 h-4 w-4" />
-                            <span>Portfolio</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/goals"))}>
-                            <Target className="mr-2 h-4 w-4" />
-                            <span>Goals</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/budgets"))}>
-                            <Wallet className="mr-2 h-4 w-4" />
-                            <span>Budgets</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push("/logs"))}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            <span>Logs</span>
+                {isSearchCommand && (
+                    <CommandGroup heading="Search">
+                        <CommandItem
+                            value={inputValue}
+                            onSelect={() => runCommand(() => router.push(`/transactions?search=${encodeURIComponent(inputValue.trim())}`))}
+                        >
+                            <Search className="mr-2 h-4 w-4" />
+                            <span>Search transactions for &quot;{inputValue.trim()}&quot;</span>
                         </CommandItem>
                     </CommandGroup>
                 )}
+
+                <CommandGroup heading="Navigation">
+                    <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => router.push("/transactions"))}>
+                        <ListOrdered className="mr-2 h-4 w-4" />
+                        <span>Transactions</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => router.push("/portfolio"))}>
+                        <PieChart className="mr-2 h-4 w-4" />
+                        <span>Portfolio</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => router.push("/goals"))}>
+                        <Target className="mr-2 h-4 w-4" />
+                        <span>Goals</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => router.push("/budgets"))}>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        <span>Budgets</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => router.push("/logs"))}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Logs</span>
+                    </CommandItem>
+                </CommandGroup>
 
                 <CommandSeparator />
 
-                {!inputValue && (
-                    <CommandGroup heading="Settings">
-                        <CommandItem onSelect={() => runCommand(() => setTheme(theme === "dark" ? "light" : "dark"))}>
-                            {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                            <span>Toggle Theme</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => logout())}>
-                            <LogOut className="mr-2 h-4 w-4 text-red-500" />
-                            <span className="text-red-500">Sign Out</span>
-                        </CommandItem>
-                    </CommandGroup>
-                )}
+                <CommandGroup heading="Settings">
+                    <CommandItem onSelect={() => runCommand(() => setTheme(theme === "dark" ? "light" : "dark"))}>
+                        {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                        <span>Toggle Theme</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand(() => logout())}>
+                        <LogOut className="mr-2 h-4 w-4 text-red-500" />
+                        <span className="text-red-500">Sign Out</span>
+                    </CommandItem>
+                </CommandGroup>
             </CommandList>
         </CommandDialog>
     );
