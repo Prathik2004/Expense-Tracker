@@ -15,17 +15,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Loader2, Download, Search, Plus, Trash2, Edit2, Filter, ChevronDown, ChevronUp, FileText, X } from "lucide-react";
+import { Loader2, Download, Search, Plus, Trash2, Edit2, Filter, ChevronDown, ChevronUp, FileText, X, LayoutList, Table as TableIcon } from "lucide-react";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
+import { SpreadsheetView } from "@/components/transactions/SpreadsheetView";
+import { TransactionDrawer } from "@/components/transactions/TransactionDrawer";
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const [viewMode, setViewMode] = useState<"list" | "spreadsheet">("list");
+
+    // Drawer state
+    const [selectedTx, setSelectedTx] = useState<any>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // Filters and pagination
+    // ... existing filters ...
     const [page, setPage] = useState(1);
     const [type, setType] = useState<string>("all");
     const [search, setSearch] = useState("");
@@ -88,9 +95,9 @@ export default function TransactionsPage() {
         }
     };
 
-    const handleEdit = (tx: any) => {
-        setEditingTransaction(tx);
-        setIsModalOpen(true);
+    const handleRowClick = (tx: any) => {
+        setSelectedTx(tx);
+        setIsDrawerOpen(true);
     };
 
     const getQueryParams = () => {
@@ -148,13 +155,29 @@ export default function TransactionsPage() {
         <div className="space-y-6 pb-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Transactions</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-1">
                         Manage and export your financial activity.
                     </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                    <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1 mr-2 shadow-inner">
+                        <button
+                            className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-800 text-primary shadow-sm' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                            onClick={() => setViewMode('list')}
+                            title="List View"
+                        >
+                            <LayoutList className="w-4 h-4" />
+                        </button>
+                        <button
+                            className={`p-1.5 rounded-md transition-all ${viewMode === 'spreadsheet' ? 'bg-white dark:bg-zinc-800 text-primary shadow-sm' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                            onClick={() => setViewMode('spreadsheet')}
+                            title="Spreadsheet Mode"
+                        >
+                            <TableIcon className="w-4 h-4" />
+                        </button>
+                    </div>
                     <Button variant="outline" size="sm" onClick={handleExportCSV}>
                         <Download className="w-4 h-4 mr-1" />
                         CSV
@@ -163,7 +186,7 @@ export default function TransactionsPage() {
                         <FileText className="w-4 h-4 mr-1" />
                         PDF Report
                     </Button>
-                    <Button size="sm" onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }}>
+                    <Button size="sm" onClick={() => setIsModalOpen(true)}>
                         <Plus className="w-4 h-4 mr-1" />
                         Add New
                     </Button>
@@ -178,12 +201,12 @@ export default function TransactionsPage() {
                             placeholder="Search descriptions..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9 h-10"
+                            className="pl-9 h-10 border-zinc-200 dark:border-zinc-800 focus:ring-primary"
                         />
                     </div>
                     <div className="flex gap-2">
                         <Select value={type} onValueChange={(v) => setType(v as string)}>
-                            <SelectTrigger className="w-[140px] h-10">
+                            <SelectTrigger className="w-[140px] h-10 border-zinc-200 dark:border-zinc-800">
                                 <SelectValue placeholder="Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -195,7 +218,7 @@ export default function TransactionsPage() {
                         </Select>
                         <Button
                             variant={isAdvancedOpen ? "secondary" : "outline"}
-                            className="h-10 px-3"
+                            className="h-10 px-3 border-zinc-200 dark:border-zinc-800"
                             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
                         >
                             <Filter className="w-4 h-4 mr-2" />
@@ -214,13 +237,13 @@ export default function TransactionsPage() {
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs border-zinc-200 dark:border-zinc-800"
                                 />
                                 <Input
                                     type="date"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs border-zinc-200 dark:border-zinc-800"
                                 />
                             </div>
                         </div>
@@ -232,14 +255,14 @@ export default function TransactionsPage() {
                                     placeholder="Min"
                                     value={minAmount}
                                     onChange={(e) => setMinAmount(e.target.value)}
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs border-zinc-200 dark:border-zinc-800"
                                 />
                                 <Input
                                     type="number"
                                     placeholder="Max"
                                     value={maxAmount}
                                     onChange={(e) => setMaxAmount(e.target.value)}
-                                    className="h-9 text-xs"
+                                    className="h-9 text-xs border-zinc-200 dark:border-zinc-800"
                                 />
                             </div>
                         </div>
@@ -250,7 +273,7 @@ export default function TransactionsPage() {
                                     <Badge
                                         key={cat}
                                         variant={selectedCategories.includes(cat) ? "default" : "outline"}
-                                        className={`cursor-pointer h-6 text-[10px] px-2 ${selectedCategories.includes(cat) ? 'bg-primary' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                        className={`cursor-pointer h-6 text-[10px] px-2 ${selectedCategories.includes(cat) ? 'bg-primary border-primary' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-800'}`}
                                         onClick={() => {
                                             if (selectedCategories.includes(cat)) {
                                                 setSelectedCategories(selectedCategories.filter(c => c !== cat));
@@ -264,108 +287,104 @@ export default function TransactionsPage() {
                                 ))}
                             </div>
                         </div>
-                        <div className="sm:col-span-2 lg:col-span-4 flex justify-end gap-2 pt-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-8"
-                                onClick={() => {
-                                    setStartDate("");
-                                    setEndDate("");
-                                    setMinAmount("");
-                                    setMaxAmount("");
-                                    setSelectedCategories([]);
-                                    setSearch("");
-                                    setType("all");
-                                }}
-                            >
-                                <X className="w-3 h-3 mr-1" />
-                                Clear All
-                            </Button>
-                        </div>
                     </div>
                 )}
             </div>
 
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
-                                <TableHead className="w-[120px]">Date</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
-                                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                                    </TableCell>
+            {viewMode === 'list' ? (
+                <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm animate-in fade-in duration-300">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
+                                    <TableHead className="w-[120px]">Date</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                    <TableHead className="text-right pr-6">Actions</TableHead>
                                 </TableRow>
-                            ) : transactions.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
-                                        No transactions found.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                transactions.map((tx) => (
-                                    <TableRow key={tx._id} className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors">
-                                        <TableCell className="font-medium text-xs sm:text-sm">
-                                            {format(new Date(tx.date), 'MMM dd, yyyy')}
-                                        </TableCell>
-                                        <TableCell className="max-w-[150px] truncate">{tx.description || '-'}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="font-normal text-[11px] h-5">
-                                                {tx.category}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant="secondary"
-                                                className={`text-[11px] h-5 ${tx.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                    tx.type === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
-                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                                                    }`}
-                                            >
-                                                {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className={`text-right font-semibold ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : tx.type === 'expense' ? 'text-zinc-900 dark:text-zinc-100' : 'text-purple-600 dark:text-purple-500'}`}>
-                                            {tx.type === 'expense' ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500" onClick={() => handleEdit(tx)}>
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" onClick={() => handleDelete(tx._id)}>
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </div>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading && transactions.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-64 text-center">
+                                            <Loader2 className="w-8 h-8 animate-spin mx-auto text-zinc-300 dark:text-zinc-700" />
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : transactions.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-48 text-center text-zinc-500">
+                                            No transactions found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    transactions.map((tx) => (
+                                        <TableRow
+                                            key={tx._id}
+                                            className="group hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
+                                            onClick={() => handleRowClick(tx)}
+                                        >
+                                            <TableCell className="font-medium text-xs sm:text-sm">
+                                                {format(new Date(tx.date), 'MMM dd, yyyy')}
+                                            </TableCell>
+                                            <TableCell className="max-w-[200px] truncate">{tx.description || '-'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="font-normal text-[10px] h-5 border-zinc-200 dark:border-zinc-800">
+                                                    {tx.category}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className={`text-[10px] h-5 uppercase tracking-wide font-bold ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' :
+                                                        tx.type === 'expense' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400' :
+                                                            'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                                                        }`}
+                                                >
+                                                    {tx.type}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className={`text-right font-bold text-sm sm:text-base ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : tx.type === 'expense' ? 'text-zinc-900 dark:text-zinc-100' : 'text-purple-600 dark:text-purple-500'}`}>
+                                                {tx.type === 'expense' ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-primary hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={() => handleRowClick(tx)}>
+                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" onClick={() => handleDelete(tx._id)}>
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="animate-in fade-in duration-300">
+                    <SpreadsheetView
+                        data={transactions}
+                        isLoading={isLoading}
+                        onUpdate={fetchTransactions}
+                    />
+                </div>
+            )}
 
             {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-4">
+                <div className="flex justify-between items-center mt-6">
                     <p className="text-sm text-zinc-500">
-                        Showing page {page} of {totalPages}
+                        Page <span className="font-semibold text-zinc-900 dark:text-zinc-100">{page}</span> of {totalPages}
                     </p>
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
                             size="sm"
+                            className="h-9 px-4 border-zinc-200 dark:border-zinc-800"
                             onClick={() => setPage(Math.max(1, page - 1))}
                             disabled={page === 1}
                         >
@@ -374,6 +393,7 @@ export default function TransactionsPage() {
                         <Button
                             variant="outline"
                             size="sm"
+                            className="h-9 px-4 border-zinc-200 dark:border-zinc-800"
                             onClick={() => setPage(Math.min(totalPages, page + 1))}
                             disabled={page === totalPages}
                         >
@@ -387,7 +407,13 @@ export default function TransactionsPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchTransactions}
-                transaction={editingTransaction}
+            />
+
+            <TransactionDrawer
+                isOpen={isDrawerOpen}
+                transaction={selectedTx}
+                onClose={() => setIsDrawerOpen(false)}
+                onSuccess={fetchTransactions}
             />
         </div>
     );
