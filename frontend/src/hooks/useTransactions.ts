@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export interface TransactionFilters {
@@ -11,28 +11,23 @@ export interface TransactionFilters {
     search?: string;
     sort?: string;
     order?: string;
+    page?: number;
+    limit?: number;
 }
 
 export const useTransactions = (filters: TransactionFilters = {}) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ['transactions', filters],
-        queryFn: async ({ pageParam = 1 }) => {
+        queryFn: async () => {
             const { data } = await api.get('/transactions', {
                 params: {
                     ...filters,
-                    page: pageParam,
-                    limit: 10,
+                    limit: filters.limit || 10,
+                    page: filters.page || 1,
                 },
             });
             return data;
         },
-        getNextPageParam: (lastPage) => {
-            if (lastPage.currentPage < lastPage.totalPages) {
-                return lastPage.currentPage + 1;
-            }
-            return undefined;
-        },
-        initialPageParam: 1,
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
 };

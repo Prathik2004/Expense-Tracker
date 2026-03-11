@@ -53,6 +53,9 @@ export default function TransactionsPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
+    const [page, setPage] = useState(1);
+    const limit = 10;
+
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -65,38 +68,20 @@ export default function TransactionsPage() {
         minAmount,
         maxAmount,
         category: selectedCategories.join(','),
+        page,
+        limit,
     };
-
-    const observerTarget = useRef<HTMLDivElement>(null);
 
     const {
         data,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
         isLoading,
+        isFetching,
         refetch
     } = useTransactions(filters);
 
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage();
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        if (observerTarget.current) {
-            observer.observe(observerTarget.current);
-        }
-
-        return () => observer.disconnect();
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-    const transactions = data?.pages.flatMap(page => page.data) || [];
-    const total = data?.pages[0]?.totalItems || 0;
+    const transactions = data?.data || [];
+    const total = data?.totalItems || 0;
+    const totalPages = data?.totalPages || 0;
     const loadedCount = transactions.length;
 
 
@@ -263,7 +248,7 @@ export default function TransactionsPage() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Select value={type} onValueChange={(v) => setType(v as string)}>
+                        <Select value={type} onValueChange={(v) => { setType(v as string); setPage(1); }}>
                             <SelectTrigger className="w-[140px] h-10">
                                 <SelectValue placeholder="Type" />
                             </SelectTrigger>
@@ -368,7 +353,12 @@ export default function TransactionsPage() {
                 )}
             </div>
 
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
+            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm relative">
+                {isFetching && (
+                    <div className="absolute inset-x-0 top-0 h-1 bg-primary/20 animate-pulse transition-opacity duration-300 z-10">
+                        <div className="h-full bg-primary animate-[shimmer_2s_infinite]" style={{ width: '40%' }} />
+                    </div>
+                )}
                 <div className="md:hidden divide-y divide-zinc-100 dark:divide-zinc-800">
                     {isLoading ? (
                         <div className="p-8 text-center">
@@ -379,7 +369,7 @@ export default function TransactionsPage() {
                             No transactions found.
                         </div>
                     ) : (
-                        transactions.map((tx) => (
+                        transactions.map((tx: any) => (
                             <TransactionRow
                                 key={tx._id}
                                 transaction={tx}
@@ -417,7 +407,7 @@ export default function TransactionsPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                transactions.map((tx) => (
+                                transactions.map((tx: any) => (
                                     <TableRow key={tx._id} className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors">
                                         <TableCell className="font-medium text-xs sm:text-sm">
                                             {format(new Date(tx.date), 'MMM dd, yyyy')}
@@ -463,18 +453,56 @@ export default function TransactionsPage() {
                 </div>
             </div>
 
-            {/* Sentinel for infinite scroll */}
-            <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                {isFetchingNextPage && (
-                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading more...
+
+            {/* Pagination Footer */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pb-12 px-2">
+                    <p className="text-xs sm:text-sm text-zinc-500 font-medium">
+                        Showing page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 rounded-lg border-zinc-200 dark:border-zinc-800"
+                            onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            disabled={page === 1}
+                        >
+                            Previous
+                        </Button>
+
+                        <div className="hidden sm:flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum = i + 1;
+                                if (totalPages > 5 && page > 3) {
+                                    pageNum = Math.min(page - 2 + i, totalPages - 4 + i);
+                                }
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        variant={page === pageNum ? "default" : "outline"}
+                                        size="sm"
+                                        className={`w-8 h-8 p-0 rounded-lg ${page === pageNum ? 'shadow-sm' : 'border-zinc-200 dark:border-zinc-800'}`}
+                                        onClick={() => { setPage(pageNum); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    >
+                                        {pageNum}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 rounded-lg border-zinc-200 dark:border-zinc-800"
+                            onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            disabled={page === totalPages}
+                        >
+                            Next
+                        </Button>
                     </div>
-                )}
-                {!hasNextPage && total > 0 && (
-                    <p className="text-zinc-500 text-sm">You've reached the end of your transactions.</p>
-                )}
-            </div>
+                </div>
+            )}
 
             <AddTransactionModal
                 isOpen={isModalOpen}
