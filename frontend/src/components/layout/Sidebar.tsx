@@ -14,8 +14,7 @@ import {
     Wallet,
     BarChart3,
     HandCoins,
-    Shield,
-    Workflow
+    Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -28,7 +27,6 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
-    { href: '/canvas', label: 'Canvas', icon: Workflow },
 ];
 
 export function Sidebar() {

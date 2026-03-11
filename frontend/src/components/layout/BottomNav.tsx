@@ -10,8 +10,7 @@ import {
     PieChart,
     BarChart3,
     HandCoins,
-    Shield,
-    Workflow
+    Shield
 } from 'lucide-react';
 
 const navItems = [
@@ -21,7 +20,6 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
-    { href: '/canvas', label: 'Canvas', icon: Workflow },
 ];
 
 export function BottomNav() {
