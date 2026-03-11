@@ -141,17 +141,17 @@ function SpatialBoardContent() {
                     </Button>
                 </Panel>
 
-                <Controls showInteractive={false} />
+                <Controls position="top-left" showInteractive={false} className="mt-20 md:mt-4" />
 
                 <MiniMap
                     nodeColor={theme === 'dark' ? '#3f3f46' : '#d4d4d8'}
                     maskColor={theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}
-                    className="overflow-hidden shadow-xl rounded-xl"
+                    className="overflow-hidden shadow-xl rounded-xl mb-24 md:mb-4"
                 />
 
                 {/* Mobile Context Action Bar */}
                 {selectedNode && (
-                    <Panel position="bottom-center" className="mb-6 z-50">
+                    <Panel position="bottom-center" className="mb-24 md:mb-6 z-50">
                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-full px-4 py-2 flex items-center space-x-4 animate-in slide-in-from-bottom-5">
                             <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[150px]">
                                 {selectedNode.data.label as string}
