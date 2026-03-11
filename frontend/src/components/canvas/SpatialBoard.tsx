@@ -18,7 +18,8 @@ import {
     applyNodeChanges,
     applyEdgeChanges,
     useOnSelectionChange,
-    Node
+    Node,
+    ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTheme } from 'next-themes';
@@ -56,7 +57,7 @@ const initialEdges: Edge[] = [
     { id: 'e-in2', source: 'mock-income', target: 'mock-goal-2', type: 'smoothstep', style: { stroke: '#3b82f6', strokeWidth: 2 } },
 ];
 
-export default function SpatialBoard() {
+function SpatialBoardContent() {
     const { theme } = useTheme();
     const [nodes, setNodes] = useNodesState(initialNodes as any);
     const [edges, setEdges] = useEdgesState(initialEdges);
@@ -111,8 +112,6 @@ export default function SpatialBoard() {
             setSelectedNode(null);
         }
     };
-
-    const isDark = theme === 'dark';
 
     return (
         <div style={{ width: '100%', height: '100%' }}>
@@ -172,5 +171,13 @@ export default function SpatialBoard() {
                 )}
             </ReactFlow>
         </div>
+    );
+}
+
+export default function SpatialBoard() {
+    return (
+        <ReactFlowProvider>
+            <SpatialBoardContent />
+        </ReactFlowProvider>
     );
 }
