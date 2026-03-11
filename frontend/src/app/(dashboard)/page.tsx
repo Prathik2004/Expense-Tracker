@@ -8,7 +8,6 @@ import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickAddFAB } from "@/components/transactions/QuickAddFAB";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { MagicInput } from "@/components/dashboard/MagicInput";
-import { ScrubberTimeline } from "@/components/dashboard/ScrubberTimeline";
 import { Loader2 } from "lucide-react";
 
 const CATEGORIES_LIST = [
@@ -165,10 +164,6 @@ export default function DashboardPage() {
             </div>
 
             <MagicInput onMagicAdd={handleMagicAdd} categories={CATEGORIES_LIST} />
-
-            <div className="sticky top-0 z-20 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-4 border-b border-zinc-200/50 dark:border-zinc-800/50 mt-4 mb-8">
-                <ScrubberTimeline value={selectedRange} onChange={setSelectedRange} />
-            </div>
 
             <KPICards
                 balance={activeSummary?.balance || 0}
