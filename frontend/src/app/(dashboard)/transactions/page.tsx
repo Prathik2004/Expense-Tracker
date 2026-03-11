@@ -67,6 +67,8 @@ export default function TransactionsPage() {
         category: selectedCategories.join(','),
     };
 
+    const observerTarget = useRef<HTMLDivElement>(null);
+
     const {
         data,
         fetchNextPage,
@@ -76,8 +78,26 @@ export default function TransactionsPage() {
         refetch
     } = useTransactions(filters);
 
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
     const transactions = data?.pages.flatMap(page => page.data) || [];
     const total = data?.pages[0]?.totalItems || 0;
+    const loadedCount = transactions.length;
 
 
     useEffect(() => {
@@ -211,7 +231,7 @@ export default function TransactionsPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                        Manage and export your financial activity.
+                        Viewing <span className="font-semibold text-zinc-900 dark:text-zinc-100">{loadedCount}</span> of <span className="font-semibold text-zinc-900 dark:text-zinc-100">{total}</span> transactions.
                     </p>
                 </div>
 
@@ -443,26 +463,18 @@ export default function TransactionsPage() {
                 </div>
             </div>
 
-            {hasNextPage && (
-                <div className="mt-8 flex justify-center pb-8">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="px-12 h-12 rounded-full border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all shadow-sm"
-                        onClick={() => fetchNextPage()}
-                        disabled={isFetchingNextPage}
-                    >
-                        {isFetchingNextPage ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Loading More...
-                            </>
-                        ) : (
-                            "Load More Transactions"
-                        )}
-                    </Button>
-                </div>
-            )}
+            {/* Sentinel for infinite scroll */}
+            <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                {isFetchingNextPage && (
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more...
+                    </div>
+                )}
+                {!hasNextPage && total > 0 && (
+                    <p className="text-zinc-500 text-sm">You've reached the end of your transactions.</p>
+                )}
+            </div>
 
             <AddTransactionModal
                 isOpen={isModalOpen}
