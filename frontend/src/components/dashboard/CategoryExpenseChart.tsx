@@ -34,13 +34,13 @@ export function CategoryExpenseChart({ data }: CategoryChartProps) {
             <CardContent>
                 <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                        <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                             <Pie
                                 data={formattedData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
+                                innerRadius={70}
+                                outerRadius={100}
                                 paddingAngle={2}
                                 dataKey="value"
                             >
@@ -52,7 +52,12 @@ export function CategoryExpenseChart({ data }: CategoryChartProps) {
                                 formatter={(value: any, name: any) => [`₹${value}`, name]}
                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                             />
-                            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                            <Legend
+                                verticalAlign="bottom"
+                                align="center"
+                                iconType="circle"
+                                wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }}
+                            />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
