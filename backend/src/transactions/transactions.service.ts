@@ -150,6 +150,15 @@ export class TransactionsService {
     };
   }
 
+  async getAnnualSummary(userId: string, year: number): Promise<any[]> {
+    // Generate an array of 12 promises, one for each month
+    const promises = Array.from({ length: 12 }, (_, i) => this.getSummary(userId, i + 1, year));
+
+    // Execute all 12 aggregations concurrently for maximum performance
+    const annualData = await Promise.all(promises);
+    return annualData;
+  }
+
   async generatePdfReport(userId: string, data: TransactionDocument[]): Promise<Buffer> {
     const user = await this.userModel.findById(userId);
     const doc = new PDFDocument({ margin: 50 });

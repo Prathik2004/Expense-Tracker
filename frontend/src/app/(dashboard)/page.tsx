@@ -8,6 +8,7 @@ import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickAddFAB } from "@/components/transactions/QuickAddFAB";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { MagicInput } from "@/components/dashboard/MagicInput";
+import { ScrubberTimeline } from "@/components/dashboard/ScrubberTimeline";
 import { Loader2 } from "lucide-react";
 
 const CATEGORIES_LIST = [
@@ -16,8 +17,14 @@ const CATEGORIES_LIST = [
     "Indian Stocks", "US Stocks", "Mutual Funds", "Gold", "Silver", "Bonds", "Crypto", "Other"
 ];
 
+const MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+
 export default function DashboardPage() {
-    const [summary, setSummary] = useState<any>(null);
+    const [annualSummaries, setAnnualSummaries] = useState<any[]>(Array(12).fill(null));
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth()); // 0-11
     const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -26,11 +33,12 @@ export default function DashboardPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [summaryRes, txRes] = await Promise.all([
-                api.get("/transactions/summary"),
+            const currentYear = new Date().getFullYear();
+            const [annualRes, txRes] = await Promise.all([
+                api.get(`/transactions/annual-summary?year=${currentYear}`),
                 api.get("/transactions?limit=5")
             ]);
-            setSummary(summaryRes.data);
+            setAnnualSummaries(annualRes.data);
             setRecentTransactions(txRes.data.data);
         } catch (err) {
             console.error("Failed to fetch dashboard data", err);
@@ -39,6 +47,7 @@ export default function DashboardPage() {
         }
     };
 
+    // [Unchanged handleEdit, handleMagicAdd, handleDelete, useEffects]
     const handleEdit = (tx: any) => {
         setEditingTransaction(tx);
         setIsAddOpen(true);
@@ -89,7 +98,9 @@ export default function DashboardPage() {
         }
     }, []);
 
-    if (isLoading && !summary) {
+    const activeSummary = annualSummaries[selectedMonth] || null;
+
+    if (isLoading && !activeSummary) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -98,22 +109,27 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
                 <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                    Your financial summary for the current month.
+                    Your financial summary for <span className="font-semibold text-emerald-600 dark:text-emerald-400">{MONTH_NAMES[selectedMonth]}</span>.
                 </p>
             </div>
 
             <MagicInput onMagicAdd={handleMagicAdd} categories={CATEGORIES_LIST} />
 
+            {/* Persistent sticky scrubber at the top (under header) or floating bottom */}
+            <div className="sticky top-0 z-20 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-4 border-b border-zinc-200/50 dark:border-zinc-800/50 mt-4 mb-8">
+                <ScrubberTimeline value={selectedMonth} onChange={setSelectedMonth} />
+            </div>
+
             <KPICards
-                balance={summary?.balance || 0}
-                income={summary?.income || 0}
-                expense={summary?.expense || 0}
-                investment={summary?.investment || 0}
-                portfolioValue={summary?.portfolioValue || 0}
+                balance={activeSummary?.balance || 0}
+                income={activeSummary?.income || 0}
+                expense={activeSummary?.expense || 0}
+                investment={activeSummary?.investment || 0}
+                portfolioValue={activeSummary?.portfolioValue || 0}
             />
 
             <div className="grid gap-4 lg:grid-cols-7">
@@ -122,7 +138,7 @@ export default function DashboardPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                 />
-                <CategoryExpenseChart data={summary?.categoryBreakdown || []} />
+                <CategoryExpenseChart data={activeSummary?.categoryBreakdown || []} />
             </div>
 
             {/* Override QuickAddFAB to open modal instead of navigating */}

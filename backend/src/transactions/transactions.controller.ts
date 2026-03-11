@@ -27,6 +27,12 @@ export class TransactionsController {
     return this.transactionsService.getSummary(req.user.userId, currentMonth, currentYear);
   }
 
+  @Get('annual-summary')
+  getAnnualSummary(@Request() req: any, @Query('year') year: string) {
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    return this.transactionsService.getAnnualSummary(req.user.userId, currentYear);
+  }
+
   @Get('export/csv')
   async exportCsv(@Request() req: any, @Query() query: any, @Res() res: Response) {
     const { data } = await this.transactionsService.findAll(req.user.userId, { ...query, limit: 10000 });
