@@ -85,13 +85,13 @@ export function SpatialBoard() {
                 onConnect={onConnect}
                 nodeTypes={nodeTypes}
                 fitView
+                colorMode={theme === 'dark' ? 'dark' : 'light'}
                 className="bg-zinc-50 dark:bg-zinc-950"
             >
                 <Background
                     variant={BackgroundVariant.Dots}
                     gap={24}
                     size={2}
-                    color={isDark ? '#27272a' : '#e4e4e7'}
                 />
 
                 {/* Internal UI Controls */}
@@ -102,15 +102,12 @@ export function SpatialBoard() {
                     </Button>
                 </Panel>
 
-                <Controls
-                    className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl overflow-hidden"
-                    showInteractive={false}
-                />
+                <Controls showInteractive={false} />
 
                 <MiniMap
-                    className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xl"
-                    nodeColor={isDark ? '#3f3f46' : '#d4d4d8'}
-                    maskColor={isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}
+                    nodeColor={theme === 'dark' ? '#3f3f46' : '#d4d4d8'}
+                    maskColor={theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}
+                    className="overflow-hidden shadow-xl rounded-xl"
                 />
             </ReactFlow>
         </div>
