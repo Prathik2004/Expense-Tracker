@@ -1,4 +1,19 @@
-import { SpatialBoard } from "@/components/canvas/SpatialBoard";
+"use client";
+
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+const SpatialBoard = dynamic(
+    () => import('../../../components/canvas/SpatialBoard'),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="flex items-center justify-center w-full h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+);
 
 export default function CanvasPage() {
     return (

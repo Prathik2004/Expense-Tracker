@@ -56,7 +56,7 @@ const initialEdges: Edge[] = [
     { id: 'e-in2', source: 'mock-income', target: 'mock-goal-2', type: 'smoothstep', style: { stroke: '#3b82f6', strokeWidth: 2 } },
 ];
 
-export function SpatialBoard() {
+export default function SpatialBoard() {
     const { theme } = useTheme();
     const [nodes, setNodes] = useNodesState(initialNodes as any);
     const [edges, setEdges] = useEdgesState(initialEdges);
