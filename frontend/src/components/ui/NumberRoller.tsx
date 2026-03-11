@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useSpring, useTransform } from "framer-motion";
+import { motion, useSpring, useTransform, LazyMotion, domAnimation } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 // The height of a single digit container (matches text-2xl line-height roughly)
@@ -30,15 +30,17 @@ function Digit({ value }: { value: number }) {
     const y = useTransform(spring, (latest) => -latest);
 
     return (
-        <div className="relative h-8 overflow-hidden inline-block tabular-nums" style={{ width: '1ch' }}>
-            <motion.div style={{ y }} className="absolute flex flex-col font-bold w-full items-center text-center">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <div key={num} className="h-8 flex items-center justify-center w-full">
-                        {num}
-                    </div>
-                ))}
-            </motion.div>
-        </div>
+        <LazyMotion features={domAnimation}>
+            <div className="relative h-8 overflow-hidden inline-block tabular-nums" style={{ width: '1ch' }}>
+                <motion.div style={{ y }} className="absolute flex flex-col font-bold w-full items-center text-center">
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                        <div key={num} className="h-8 flex items-center justify-center w-full">
+                            {num}
+                        </div>
+                    ))}
+                </motion.div>
+            </div>
+        </LazyMotion>
     );
 }
 

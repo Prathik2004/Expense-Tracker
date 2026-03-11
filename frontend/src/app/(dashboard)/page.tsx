@@ -6,27 +6,19 @@ import dynamic from 'next/dynamic';
 import { Loader2 } from "lucide-react";
 import { useNotificationStore } from "@/store/notification.store";
 
+import { KPICards } from "@/components/dashboard/KPICards";
+import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { MagicInput } from "@/components/dashboard/MagicInput";
 import {
-    KPICardsSkeleton,
-    RecentTransactionsSkeleton,
     CategoryChartSkeleton
 } from "@/components/dashboard/DashboardSkeletons";
 
-const KPICards = dynamic(() => import("@/components/dashboard/KPICards").then(mod => mod.KPICards), {
-    ssr: false,
-    loading: () => <KPICardsSkeleton />
-});
 const CategoryExpenseChart = dynamic(() => import("@/components/dashboard/CategoryExpenseChart").then(mod => mod.CategoryExpenseChart), {
     ssr: false,
     loading: () => <CategoryChartSkeleton />
 });
-const RecentTransactions = dynamic(() => import("@/components/dashboard/RecentTransactions").then(mod => mod.RecentTransactions), {
-    ssr: false,
-    loading: () => <RecentTransactionsSkeleton />
-});
 const QuickAddFAB = dynamic(() => import("@/components/transactions/QuickAddFAB").then(mod => mod.QuickAddFAB), { ssr: false });
 const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal").then(mod => mod.AddTransactionModal), { ssr: false });
-const MagicInput = dynamic(() => import("@/components/dashboard/MagicInput").then(mod => mod.MagicInput), { ssr: false });
 
 const CATEGORIES_LIST = [
     "Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping",
