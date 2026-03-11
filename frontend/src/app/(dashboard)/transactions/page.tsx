@@ -454,47 +454,26 @@ export default function TransactionsPage() {
             </div>
 
 
-            {/* Pagination Footer */}
+            {/* Simple Classic Pagination */}
             {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pb-12 px-2">
+                <div className="flex justify-between items-center mt-6 pb-12 px-2">
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium">
-                        Showing page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
+                        Page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 rounded-lg border-zinc-200 dark:border-zinc-800"
+                            className="h-9 px-4 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                             onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                             disabled={page === 1}
                         >
                             Previous
                         </Button>
-
-                        <div className="hidden sm:flex items-center gap-1">
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                let pageNum = i + 1;
-                                if (totalPages > 5 && page > 3) {
-                                    pageNum = Math.min(page - 2 + i, totalPages - 4 + i);
-                                }
-                                return (
-                                    <Button
-                                        key={pageNum}
-                                        variant={page === pageNum ? "default" : "outline"}
-                                        size="sm"
-                                        className={`w-8 h-8 p-0 rounded-lg ${page === pageNum ? 'shadow-sm' : 'border-zinc-200 dark:border-zinc-800'}`}
-                                        onClick={() => { setPage(pageNum); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    >
-                                        {pageNum}
-                                    </Button>
-                                );
-                            })}
-                        </div>
-
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 rounded-lg border-zinc-200 dark:border-zinc-800"
+                            className="h-9 px-4 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                             onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                             disabled={page === totalPages}
                         >
