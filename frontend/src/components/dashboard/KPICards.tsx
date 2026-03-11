@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IndianRupee, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { NumberRoller } from '@/components/ui/NumberRoller';
 
 interface KPICardsProps {
     balance: number;
@@ -10,13 +11,6 @@ interface KPICardsProps {
 }
 
 export function KPICards({ balance, income, expense, investment, portfolioValue }: KPICardsProps) {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0,
-        }).format(amount);
-    };
 
     const savingsRate = income > 0 ? (investment / income) * 100 : 0;
 
@@ -34,7 +28,7 @@ export function KPICards({ balance, income, expense, investment, portfolioValue 
                     <IndianRupee className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(balance)}</div>
+                    <div className="text-2xl font-bold flex"><NumberRoller value={balance} /></div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         Current month balance
                     </p>
@@ -47,8 +41,8 @@ export function KPICards({ balance, income, expense, investment, portfolioValue 
                     <TrendingUp className="h-4 w-4 text-emerald-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">
-                        {formatCurrency(income)}
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500 flex">
+                        <NumberRoller value={income} />
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         From all income sources
@@ -62,8 +56,8 @@ export function KPICards({ balance, income, expense, investment, portfolioValue 
                     <TrendingDown className="h-4 w-4 text-rose-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-rose-600 dark:text-rose-500">
-                        {formatCurrency(expense)}
+                    <div className="text-2xl font-bold text-rose-600 dark:text-rose-500 flex">
+                        <NumberRoller value={expense} />
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         Total spending this month
@@ -77,8 +71,8 @@ export function KPICards({ balance, income, expense, investment, portfolioValue 
                     <PiggyBank className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-500">
-                        {formatCurrency(investment)}
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-500 flex">
+                        <NumberRoller value={investment} />
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         Total wealth invested
