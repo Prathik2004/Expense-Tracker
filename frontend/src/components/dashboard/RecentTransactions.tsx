@@ -4,7 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Edit2, Trash2, ArrowRight } from "lucide-react";
+import {
+    Edit2,
+    Trash2,
+    ArrowRight
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RecentTransactionsProps {

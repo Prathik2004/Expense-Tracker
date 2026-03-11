@@ -6,12 +6,24 @@ import dynamic from 'next/dynamic';
 import { Loader2 } from "lucide-react";
 import { useNotificationStore } from "@/store/notification.store";
 
-const KPICards = dynamic(() => import("@/components/dashboard/KPICards").then(mod => mod.KPICards), { ssr: false });
+import {
+    KPICardsSkeleton,
+    RecentTransactionsSkeleton,
+    CategoryChartSkeleton
+} from "@/components/dashboard/DashboardSkeletons";
+
+const KPICards = dynamic(() => import("@/components/dashboard/KPICards").then(mod => mod.KPICards), {
+    ssr: false,
+    loading: () => <KPICardsSkeleton />
+});
 const CategoryExpenseChart = dynamic(() => import("@/components/dashboard/CategoryExpenseChart").then(mod => mod.CategoryExpenseChart), {
     ssr: false,
-    loading: () => <div className="h-[300px] w-full bg-zinc-100 dark:bg-zinc-800/50 animate-pulse rounded-xl" />
+    loading: () => <CategoryChartSkeleton />
 });
-const RecentTransactions = dynamic(() => import("@/components/dashboard/RecentTransactions").then(mod => mod.RecentTransactions), { ssr: false });
+const RecentTransactions = dynamic(() => import("@/components/dashboard/RecentTransactions").then(mod => mod.RecentTransactions), {
+    ssr: false,
+    loading: () => <RecentTransactionsSkeleton />
+});
 const QuickAddFAB = dynamic(() => import("@/components/transactions/QuickAddFAB").then(mod => mod.QuickAddFAB), { ssr: false });
 const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal").then(mod => mod.AddTransactionModal), { ssr: false });
 const MagicInput = dynamic(() => import("@/components/dashboard/MagicInput").then(mod => mod.MagicInput), { ssr: false });

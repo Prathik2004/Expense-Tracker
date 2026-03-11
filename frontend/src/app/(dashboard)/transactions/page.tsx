@@ -16,7 +16,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Plus, Search, Filter, Download, FileText, ChevronDown, ChevronUp, X, Loader2, Edit2, Trash2, Copy } from "lucide-react";
+import {
+    Plus,
+    Search,
+    Filter,
+    Download,
+    FileText,
+    ChevronDown,
+    ChevronUp,
+    X,
+    Loader2,
+    Edit2,
+    Trash2,
+    Copy
+} from "lucide-react";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { hapticWarning } from "@/lib/haptic";
 import { toast } from "sonner";

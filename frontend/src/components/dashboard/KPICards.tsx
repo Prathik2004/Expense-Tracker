@@ -1,5 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import {
+    IndianRupee,
+    TrendingUp,
+    TrendingDown,
+    PiggyBank
+} from 'lucide-react';
 import { NumberRoller } from '@/components/ui/NumberRoller';
 import { SpotlightCard } from '@/components/ui/SpotlightCard';
 

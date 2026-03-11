@@ -5,10 +5,15 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
-import { Loader2, Moon, Sun, LogOut, Wallet } from 'lucide-react';
+import {
+    Loader2,
+    Moon,
+    Sun,
+    LogOut,
+    Wallet
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { io } from 'socket.io-client';
 import dynamic from 'next/dynamic';
 
 const CommandPalette = dynamic(() => import('./CommandPalette').then(mod => mod.CommandPalette), { ssr: false });
@@ -55,25 +60,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             // Strip any trailing /api to ensure socket connects to root namespace
             socketUrl = socketUrl.replace(/\/api\/?$/, '');
 
-            const socket = io(socketUrl, {
-                transports: ['websocket', 'polling']
-            });
+            const setupSocket = async () => {
+                const { io } = await import('socket.io-client');
+                const socket = io(socketUrl, {
+                    transports: ['websocket', 'polling']
+                });
 
-            socket.on('connect', () => {
-                socket.emit('join_room', user._id);
-            });
+                socket.on('connect', () => {
+                    socket.emit('join_room', user._id);
+                });
 
-            const handleSync = () => {
-                window.dispatchEvent(new CustomEvent('sync_transactions'));
+                const handleSync = () => {
+                    window.dispatchEvent(new CustomEvent('sync_transactions'));
+                };
+
+                socket.on('transaction_added', handleSync);
+                socket.on('transaction_updated', handleSync);
+                socket.on('transaction_deleted', handleSync);
+                socket.on('transactions_bulk_added', handleSync);
+
+                return socket;
             };
 
-            socket.on('transaction_added', handleSync);
-            socket.on('transaction_updated', handleSync);
-            socket.on('transaction_deleted', handleSync);
-            socket.on('transactions_bulk_added', handleSync);
+            const socketPromise = setupSocket();
 
             return () => {
-                socket.disconnect();
+                socketPromise.then(socket => socket.disconnect());
             };
         }
     }, [user]);
