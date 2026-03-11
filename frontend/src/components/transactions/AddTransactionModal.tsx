@@ -23,6 +23,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { evaluateMath } from "@/lib/mathParser";
 import { hapticLight, hapticSuccess } from "@/lib/haptic";
+import { useNotificationStore } from "@/store/notification.store";
 
 
 interface AddTxProps {
@@ -48,6 +49,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
     const [date, setDate] = useState(transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const notifications = useNotificationStore();
 
     // Custom category logic
     const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -122,6 +124,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
 
         setIsLoading(true);
         setError("");
+        notifications.show({ type: 'loading', message: isEdit ? 'Updating...' : 'Saving...' });
 
         try {
             const evaluatedAmount = evaluateMath(amount) || parseFloat(amount) || 0;
@@ -140,6 +143,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
             }
 
             hapticSuccess();
+            notifications.update({ type: 'success', message: isEdit ? 'Updated!' : 'Saved!' });
             onSuccess();
             onClose();
 
@@ -149,8 +153,11 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                 setCategory("");
                 setDescription("");
             }
+
+            setTimeout(() => notifications.hide(), 3000);
         } catch (err: any) {
             setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} transaction`);
+            notifications.show({ type: 'error', message: 'Failed to Save' });
         } finally {
             setIsLoading(false);
         }

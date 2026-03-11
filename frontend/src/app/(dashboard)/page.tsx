@@ -9,6 +9,7 @@ import { QuickAddFAB } from "@/components/transactions/QuickAddFAB";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { MagicInput } from "@/components/dashboard/MagicInput";
 import { Loader2 } from "lucide-react";
+import { useNotificationStore } from "@/store/notification.store";
 
 const CATEGORIES_LIST = [
     "Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping",
@@ -31,6 +32,7 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const notifications = useNotificationStore();
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -62,11 +64,15 @@ export default function DashboardPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this transaction?")) return;
+        notifications.show({ type: 'loading', message: 'Deleting...' });
         try {
             await api.delete(`/transactions/${id}`);
+            notifications.update({ type: 'success', message: 'Deleted!' });
             fetchData();
+            setTimeout(() => notifications.hide(), 2000);
         } catch (err) {
             console.error("Failed to delete transaction", err);
+            notifications.show({ type: 'error', message: 'Deletion Failed' });
         }
     };
 
