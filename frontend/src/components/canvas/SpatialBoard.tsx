@@ -12,7 +12,11 @@ import {
     Connection,
     Edge,
     BackgroundVariant,
-    Panel
+    Panel,
+    NodeChange,
+    EdgeChange,
+    applyNodeChanges,
+    applyEdgeChanges
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTheme } from 'next-themes';
@@ -52,11 +56,25 @@ const initialEdges: Edge[] = [
 
 export function SpatialBoard() {
     const { theme } = useTheme();
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as any);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [nodes, setNodes] = useNodesState(initialNodes as any);
+    const [edges, setEdges] = useEdgesState(initialEdges);
+
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        [setNodes]
+    );
+
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+        [setEdges]
+    );
 
     const onConnect = useCallback(
-        (params: Connection | Edge) => setEdges((eds) => addEdge({ ...params, animated: true, style: { strokeWidth: 2 } } as any, eds)),
+        (params: Connection | Edge) => setEdges((eds) => addEdge({
+            ...params,
+            animated: true,
+            style: { strokeWidth: 2 }
+        } as any, eds)),
         [setEdges]
     );
 
@@ -85,6 +103,7 @@ export function SpatialBoard() {
                 onConnect={onConnect}
                 nodeTypes={nodeTypes}
                 fitView
+                deleteKeyCode={['Backspace', 'Delete']}
                 colorMode={theme === 'dark' ? 'dark' : 'light'}
                 className="bg-zinc-50 dark:bg-zinc-950"
             >
