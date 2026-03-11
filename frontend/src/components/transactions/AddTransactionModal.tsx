@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 import { evaluateMath } from "@/lib/mathParser";
 import { hapticLight, hapticSuccess } from "@/lib/haptic";
 import { useNotificationStore } from "@/store/notification.store";
+import { sounds } from "@/lib/sounds";
 
 
 interface AddTxProps {
@@ -119,6 +120,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
 
         if (!amount || !finalCategory || !date) {
             setError("Please fill all required fields");
+            sounds.playThud();
             return;
         }
 
@@ -143,6 +145,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
             }
 
             hapticSuccess();
+            sounds.playPop();
             notifications.update({ type: 'success', message: isEdit ? 'Updated!' : 'Saved!' });
             onSuccess();
             onClose();
@@ -158,6 +161,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
         } catch (err: any) {
             setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} transaction`);
             notifications.show({ type: 'error', message: 'Failed to Save' });
+            sounds.playThud();
         } finally {
             setIsLoading(false);
         }

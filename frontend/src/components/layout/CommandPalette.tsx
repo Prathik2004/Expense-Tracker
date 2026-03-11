@@ -27,6 +27,7 @@ import {
     PlusCircle,
     Search
 } from "lucide-react";
+import { sounds } from "@/lib/sounds";
 
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
@@ -41,7 +42,10 @@ export function CommandPalette() {
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                setOpen((open) => !open);
+                setOpen((open) => {
+                    if (!open) sounds.playTick();
+                    return !open;
+                });
             }
         };
 
