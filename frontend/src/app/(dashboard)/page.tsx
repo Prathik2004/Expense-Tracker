@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 lg:grid-cols-7">
                 <RecentTransactions
-                    transactions={(activeSummary?.transactions || []).slice(0, 10)} // Show top 10 from range
+                    transactions={(activeSummary?.transactions || []).slice(0, 5)} // Show top 5 from range
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                 />
