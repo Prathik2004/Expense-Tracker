@@ -7,84 +7,121 @@ import { hapticLight } from "@/lib/haptic";
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 interface ScrubberTimelineProps {
-    value: number; // 0-11
-    onChange: (value: number) => void;
+    value: [number, number]; // [startMonth: 0-11, endMonth: 0-11]
+    onChange: (value: [number, number]) => void;
 }
 
 export function ScrubberTimeline({ value, onChange }: ScrubberTimelineProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [bounds, setBounds] = useState({ width: 0, left: 0 });
-    const x = useMotionValue(0);
 
-    // Track the last emitted value to prevent redundant onChange calls
-    const lastEmittedValue = useRef(value);
+    // We maintain two separate motion values for the left and right thumbs
+    const xMin = useMotionValue(0);
+    const xMax = useMotionValue(0);
 
-    // Calculate layout bounds on mount and resize
+    // Track last emitted to prevent over-firing
+    const lastEmittedValue = useRef<[number, number]>(value);
+
+    // Mount/Resize logic: set pixel positions based on month values (0-11)
     useEffect(() => {
         const updateBounds = () => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();
                 setBounds({ width: rect.width, left: rect.left });
-                // Initialize handle position based on value
-                // Handle width is 40px (w-10), so movable area is width - 40
-                const movableWidth = rect.width - 40;
-                const initialX = (value / 11) * movableWidth;
-                x.set(initialX);
+
+                const handleWidth = 40; // width of the thumb
+                // Total width minus 1 handle. We use 1 handle width because we want them to be able to overlap visually at the same index
+                const movableWidth = rect.width - handleWidth;
+
+                const initialXMin = (value[0] / 11) * movableWidth;
+                const initialXMax = (value[1] / 11) * movableWidth;
+
+                xMin.set(initialXMin);
+                xMax.set(initialXMax);
             }
         };
 
         updateBounds();
         window.addEventListener('resize', updateBounds);
         return () => window.removeEventListener('resize', updateBounds);
-    }, [value, x]); // Dependency on value so external changes (like initial load) snap the handle
+    }, [value, xMin, xMax]);
 
-    // Logic to convert raw X pixel value to a 0-11 month index
     const calculateMonthFromX = (currentX: number) => {
-        const movableWidth = Math.max(1, bounds.width - 40);
-        // Map currentX (0 to movableWidth) to a 0-1 percentage
+        const handleWidth = 40;
+        const movableWidth = Math.max(1, bounds.width - handleWidth);
         let percentage = currentX / movableWidth;
-        percentage = Math.max(0, Math.min(1, percentage)); // Clamp between 0 and 1
-
-        // Map percentage to 0-11 integer
+        percentage = Math.max(0, Math.min(1, percentage));
         return Math.round(percentage * 11);
     };
 
-    // Handle Framer Motion's onChange event for the X value
+    // Watchers for Min Handle
     useEffect(() => {
-        const unsubscribe = x.onChange((latestX) => {
-            const calculatedMonth = calculateMonthFromX(latestX);
+        const unsubscribe = xMin.onChange((latestXMin) => {
+            const calculatedMinMonth = calculateMonthFromX(latestXMin);
+            const currentMaxMonth = lastEmittedValue.current[1];
 
-            if (calculatedMonth !== lastEmittedValue.current) {
-                hapticLight(); // Provide a physical tick every time it snaps to a new month
-                lastEmittedValue.current = calculatedMonth;
-                onChange(calculatedMonth);
+            // Collision detection block
+            if (calculatedMinMonth > currentMaxMonth) {
+                // Instantly snap it back visually so it can't cross
+                const handleWidth = 40;
+                const movableWidth = Math.max(1, bounds.width - handleWidth);
+                xMin.set((currentMaxMonth / 11) * movableWidth);
+                return;
+            }
+
+            if (calculatedMinMonth !== lastEmittedValue.current[0]) {
+                hapticLight();
+                lastEmittedValue.current = [calculatedMinMonth, currentMaxMonth];
+                onChange([calculatedMinMonth, currentMaxMonth]);
             }
         });
         return unsubscribe;
-    }, [x, bounds.width, onChange]);
+    }, [xMin, bounds.width, onChange]);
 
-    // Spring interpolation to visually smoothly expand the "active" track behind the handle
-    const activeTrackWidth = useTransform(x, (latestX) => latestX + 20); // +20 to reach center of handle
+    // Watchers for Max Handle
+    useEffect(() => {
+        const unsubscribe = xMax.onChange((latestXMax) => {
+            const calculatedMaxMonth = calculateMonthFromX(latestXMax);
+            const currentMinMonth = lastEmittedValue.current[0];
+
+            // Collision detection block
+            if (calculatedMaxMonth < currentMinMonth) {
+                // Instantly snap it back visually so it can't cross
+                const handleWidth = 40;
+                const movableWidth = Math.max(1, bounds.width - handleWidth);
+                xMax.set((currentMinMonth / 11) * movableWidth);
+                return;
+            }
+
+            if (calculatedMaxMonth !== lastEmittedValue.current[1]) {
+                hapticLight();
+                lastEmittedValue.current = [currentMinMonth, calculatedMaxMonth];
+                onChange([currentMinMonth, calculatedMaxMonth]);
+            }
+        });
+        return unsubscribe;
+    }, [xMax, bounds.width, onChange]);
+
+
+    // Active track styling between the two handles
+    const activeTrackLeft = useTransform(xMin, (latestX) => latestX + 20); // Center of min handle
+    const activeTrackWidth = useTransform(
+        [xMin, xMax],
+        ([min, max]) => Math.max(0, (max as number) - (min as number))
+    );
 
     return (
         <div className="w-full max-w-2xl mx-auto py-6 relative select-none touch-none">
-            {/* Visually hidden label for screen readers */}
-            <div id="scrubber-label" className="sr-only">Select Month</div>
+            <div id="scrubber-label" className="sr-only">Select Month Range</div>
 
             <div
                 ref={containerRef}
                 className="relative h-12 flex items-center w-full"
-                onTouchStart={() => {
-                    // Ensure touch actions don't scroll the page while grabbing
-                    document.body.style.overflow = "hidden";
-                }}
-                onTouchEnd={() => {
-                    document.body.style.overflow = "";
-                }}
+                onTouchStart={() => { document.body.style.overflow = "hidden"; }}
+                onTouchEnd={() => { document.body.style.overflow = ""; }}
             >
                 {/* Background Empty Track */}
                 <div className="absolute w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    {/* Tick marks for each month */}
                     <div className="absolute inset-0 flex justify-between px-2">
                         {MONTHS.map((_, i) => (
                             <div key={i} className="w-[2px] h-full bg-zinc-300 dark:bg-zinc-700/50" />
@@ -92,36 +129,52 @@ export function ScrubberTimeline({ value, onChange }: ScrubberTimelineProps) {
                     </div>
                 </div>
 
-                {/* Filled Active Track */}
+                {/* Filled Active Track (Between Handles) */}
                 <motion.div
                     className="absolute h-2 bg-emerald-500 rounded-full"
-                    style={{ width: activeTrackWidth }}
+                    style={{ left: activeTrackLeft, width: activeTrackWidth }}
                 />
 
-                {/* Draggable Playhead/Handle */}
+                {/* Left/Min Handle */}
                 <motion.div
-                    className="absolute w-10 h-10 bg-white dark:bg-zinc-100 rounded-full shadow-lg border-2 border-emerald-500 flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
-                    style={{ x }}
+                    className="absolute w-10 h-10 bg-white dark:bg-zinc-100 rounded-full shadow-lg border-2 border-emerald-500 flex items-center justify-center cursor-grab active:cursor-grabbing z-20"
+                    style={{ x: xMin }}
                     drag="x"
                     dragConstraints={containerRef}
-                    dragElastic={0} // No bouncy overscroll pull, strict constraints
-                    dragMomentum={false} // Immediately stop when let go, no sliding friction
+                    dragElastic={0}
+                    dragMomentum={false}
+                >
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                </motion.div>
+
+                {/* Right/Max Handle */}
+                <motion.div
+                    className="absolute w-10 h-10 bg-white dark:bg-zinc-100 rounded-full shadow-lg border-2 border-emerald-500 flex items-center justify-center cursor-grab active:cursor-grabbing z-20"
+                    style={{ x: xMax }}
+                    drag="x"
+                    dragConstraints={containerRef}
+                    dragElastic={0}
+                    dragMomentum={false}
                 >
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 </motion.div>
 
             </div>
 
-            {/* Labels beneath the track */}
+            {/* Range Labels */}
             <div className="flex justify-between mt-2 px-2 text-xs font-semibold text-zinc-400">
-                {MONTHS.map((m, i) => (
-                    <span
-                        key={m}
-                        className={`w-6 text-center transition-colors ${value === i ? 'text-zinc-900 dark:text-white' : ''}`}
-                    >
-                        {m === 'Jan' || m === 'Dec' || value === i ? m : '·'}
-                    </span>
-                ))}
+                {MONTHS.map((m, i) => {
+                    const isSelected = i >= value[0] && i <= value[1];
+                    const isBoundary = m === 'Jan' || m === 'Dec' || i === value[0] || i === value[1];
+                    return (
+                        <span
+                            key={m}
+                            className={`w-6 text-center transition-colors ${isSelected ? 'text-zinc-900 dark:text-white' : ''}`}
+                        >
+                            {isBoundary ? m : '·'}
+                        </span>
+                    );
+                })}
             </div>
         </div>
     );

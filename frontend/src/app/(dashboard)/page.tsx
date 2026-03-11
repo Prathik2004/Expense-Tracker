@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/api";
 import { KPICards } from "@/components/dashboard/KPICards";
 import { CategoryExpenseChart } from "@/components/dashboard/CategoryExpenseChart";
@@ -24,8 +24,11 @@ const MONTH_NAMES = [
 
 export default function DashboardPage() {
     const [annualSummaries, setAnnualSummaries] = useState<any[]>(Array(12).fill(null));
-    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth()); // 0-11
-    const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+    const currentMonth = new Date().getMonth();
+    const [selectedRange, setSelectedRange] = useState<[number, number]>([currentMonth, currentMonth]); // default single month
+
+    // We fetch a fallback of absolute newest transactions if they haven't scrubbed, 
+    // but we can also build the list dynamically from the cached annual data.
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -34,12 +37,9 @@ export default function DashboardPage() {
         setIsLoading(true);
         try {
             const currentYear = new Date().getFullYear();
-            const [annualRes, txRes] = await Promise.all([
-                api.get(`/transactions/annual-summary?year=${currentYear}`),
-                api.get("/transactions?limit=5")
-            ]);
-            setAnnualSummaries(annualRes.data);
-            setRecentTransactions(txRes.data.data);
+            // We just need the annual-summary now, as it contains all transactions heavily cached
+            const response = await api.get(`/transactions/annual-summary?year=${currentYear}`);
+            setAnnualSummaries(response.data);
         } catch (err) {
             console.error("Failed to fetch dashboard data", err);
         } finally {
@@ -47,7 +47,6 @@ export default function DashboardPage() {
         }
     };
 
-    // [Unchanged handleEdit, handleMagicAdd, handleDelete, useEffects]
     const handleEdit = (tx: any) => {
         setEditingTransaction(tx);
         setIsAddOpen(true);
@@ -56,7 +55,7 @@ export default function DashboardPage() {
     const handleMagicAdd = (data: any) => {
         setEditingTransaction({
             ...data,
-            type: 'expense', // Default to expense for magic add, can be changed in modal
+            type: 'expense',
             date: new Date().toISOString()
         });
         setIsAddOpen(true);
@@ -75,30 +74,72 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchData();
 
-        const handleSync = () => {
-            fetchData();
-        };
-
+        const handleSync = () => fetchData();
         window.addEventListener('sync_transactions', handleSync);
-        return () => {
-            window.removeEventListener('sync_transactions', handleSync);
-        };
+        return () => window.removeEventListener('sync_transactions', handleSync);
     }, []);
 
-    // Handle URL query for quick add
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('add') === 'true') {
                 setEditingTransaction(null);
                 setIsAddOpen(true);
-                // Clean up URL
                 window.history.replaceState({}, '', '/');
             }
         }
     }, []);
 
-    const activeSummary = annualSummaries[selectedMonth] || null;
+    // Memoized computation to mathematically merge data across the selected months
+    const activeSummary = useMemo(() => {
+        const [start, end] = selectedRange;
+        const monthsSlice = annualSummaries.slice(start, end + 1).filter(Boolean);
+
+        if (monthsSlice.length === 0) return null;
+        if (monthsSlice.length === 1) return monthsSlice[0];
+
+        // Complex reduction for 2+ months
+        const merged = {
+            income: 0,
+            expense: 0,
+            investment: 0,
+            balance: 0,
+            portfolioValue: monthsSlice[monthsSlice.length - 1].portfolioValue || 0, // PV is a point-in-time, take the latest
+            categoryBreakdown: [] as any[],
+            transactions: [] as any[]
+        };
+
+        const categoryMap = new Map<string, number>();
+
+        monthsSlice.forEach(month => {
+            merged.income += month.income || 0;
+            merged.expense += month.expense || 0;
+            merged.investment += month.investment || 0;
+            merged.balance += month.balance || 0;
+
+            // Merge transactions
+            if (month.transactions) {
+                merged.transactions.push(...month.transactions);
+            }
+
+            // Merge categories
+            if (month.categoryBreakdown) {
+                month.categoryBreakdown.forEach((cat: any) => {
+                    categoryMap.set(cat._id, (categoryMap.get(cat._id) || 0) + cat.total);
+                });
+            }
+        });
+
+        // Convert map back to sorted array
+        merged.categoryBreakdown = Array.from(categoryMap.entries())
+            .map(([id, total]) => ({ _id: id, total }))
+            .sort((a, b) => b.total - a.total);
+
+        // Sort transactions purely by date descending
+        merged.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        return merged;
+    }, [annualSummaries, selectedRange]);
 
     if (isLoading && !activeSummary) {
         return (
@@ -108,20 +149,25 @@ export default function DashboardPage() {
         );
     }
 
+    // Determine header string
+    const [startMonth, endMonth] = selectedRange;
+    const dateText = startMonth === endMonth
+        ? MONTH_NAMES[startMonth]
+        : `${MONTH_NAMES[startMonth]} – ${MONTH_NAMES[endMonth]}`;
+
     return (
         <div className="space-y-6 pb-24">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
                 <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                    Your financial summary for <span className="font-semibold text-emerald-600 dark:text-emerald-400">{MONTH_NAMES[selectedMonth]}</span>.
+                    Your financial summary for <span className="font-semibold text-emerald-600 dark:text-emerald-400">{dateText}</span>.
                 </p>
             </div>
 
             <MagicInput onMagicAdd={handleMagicAdd} categories={CATEGORIES_LIST} />
 
-            {/* Persistent sticky scrubber at the top (under header) or floating bottom */}
             <div className="sticky top-0 z-20 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-4 border-b border-zinc-200/50 dark:border-zinc-800/50 mt-4 mb-8">
-                <ScrubberTimeline value={selectedMonth} onChange={setSelectedMonth} />
+                <ScrubberTimeline value={selectedRange} onChange={setSelectedRange} />
             </div>
 
             <KPICards
@@ -134,14 +180,13 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 lg:grid-cols-7">
                 <RecentTransactions
-                    transactions={recentTransactions}
+                    transactions={(activeSummary?.transactions || []).slice(0, 10)} // Show top 10 from range
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                 />
                 <CategoryExpenseChart data={activeSummary?.categoryBreakdown || []} />
             </div>
 
-            {/* Override QuickAddFAB to open modal instead of navigating */}
             <QuickAddFAB onClick={() => { setEditingTransaction(null); setIsAddOpen(true); }} />
 
             <AddTransactionModal

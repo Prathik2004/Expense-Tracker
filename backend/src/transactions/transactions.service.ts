@@ -138,6 +138,11 @@ export class TransactionsService {
       { $sort: { total: -1 } }
     ]);
 
+    const transactions = await this.transactionModel.find({
+      userId: new Types.ObjectId(userId),
+      date: { $gte: startDate, $lte: endDate }
+    } as any).sort({ date: -1 }).exec();
+
     const user = await this.userModel.findById(userId);
 
     return {
@@ -146,7 +151,8 @@ export class TransactionsService {
       investment,
       portfolioValue: user?.portfolioValue || 0,
       balance: income - expense - investment,
-      categoryBreakdown
+      categoryBreakdown,
+      transactions
     };
   }
 
