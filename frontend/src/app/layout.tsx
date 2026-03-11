@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Expense Tracker",
   description: "Comprehensive personal finance and expense tracking app",
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({
