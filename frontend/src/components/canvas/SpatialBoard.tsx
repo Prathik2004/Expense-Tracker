@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ReactFlow,
     Background,
@@ -16,13 +16,15 @@ import {
     NodeChange,
     EdgeChange,
     applyNodeChanges,
-    applyEdgeChanges
+    applyEdgeChanges,
+    useOnSelectionChange,
+    Node
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTheme } from 'next-themes';
 import { GoalNode } from './GoalNode';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 const nodeTypes = {
     goal: GoalNode,
@@ -58,6 +60,17 @@ export function SpatialBoard() {
     const { theme } = useTheme();
     const [nodes, setNodes] = useNodesState(initialNodes as any);
     const [edges, setEdges] = useEdgesState(initialEdges);
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+
+    useOnSelectionChange({
+        onChange: ({ nodes }) => {
+            if (nodes.length === 1) {
+                setSelectedNode(nodes[0]);
+            } else {
+                setSelectedNode(null);
+            }
+        },
+    });
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -80,15 +93,23 @@ export function SpatialBoard() {
 
     const handleAddNode = () => {
         const newNode = {
-            id: `node-${nodes.length + 1}`,
+            id: `node-${Date.now()}`,
             type: 'goal',
             position: {
                 x: 200 + Math.random() * 200,
                 y: 100 + Math.random() * 200
             },
-            data: { label: 'New Block', amount: 0 },
+            data: { label: 'New Goal', amount: 0 },
         };
         setNodes((nds) => [...nds, newNode]);
+    };
+
+    const handleDeleteSelected = () => {
+        if (selectedNode) {
+            setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
+            setEdges((eds) => eds.filter((e) => e.source !== selectedNode.id && e.target !== selectedNode.id));
+            setSelectedNode(null);
+        }
     };
 
     const isDark = theme === 'dark';
@@ -128,6 +149,27 @@ export function SpatialBoard() {
                     maskColor={theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}
                     className="overflow-hidden shadow-xl rounded-xl"
                 />
+
+                {/* Mobile Context Action Bar */}
+                {selectedNode && (
+                    <Panel position="bottom-center" className="mb-6 z-50">
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-full px-4 py-2 flex items-center space-x-4 animate-in slide-in-from-bottom-5">
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[150px]">
+                                {selectedNode.data.label as string}
+                            </span>
+                            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800" />
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleDeleteSelected}
+                                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-full h-8 px-3"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                            </Button>
+                        </div>
+                    </Panel>
+                )}
             </ReactFlow>
         </div>
     );

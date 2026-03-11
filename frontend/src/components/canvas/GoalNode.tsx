@@ -1,5 +1,5 @@
 import { Handle, Position, useReactFlow } from '@xyflow/react';
-import { Target } from 'lucide-react';
+import { Target, Pencil } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -65,6 +65,22 @@ export function GoalNode({ id, data }: { id: string, data: any }) {
 
     return (
         <div className="relative group px-4 py-3 shadow-xl rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 min-w-[200px] transition-all hover:border-emerald-500/50">
+            {/* Mobile-friendly Edit Button */}
+            {!isEditingLabel && !isEditingAmount && (
+                <div className="absolute top-2 right-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditingLabel(true);
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-md transition-colors"
+                        aria-label="Edit Goal"
+                    >
+                        <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            )}
+
             {/* Input handle (left side) */}
             <Handle
                 type="target"
