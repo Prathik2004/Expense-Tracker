@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}
-                <header className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
+                <header className="flex md:hidden items-center justify-between p-4 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
                     <div className="flex items-center space-x-2">
                         <Wallet className="w-5 h-5 text-primary" />
                         <span className="text-lg font-bold tracking-tight">Expensify</span>
