@@ -54,7 +54,7 @@ export default function TransactionsPage() {
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
     const [page, setPage] = useState(1);
-    const limit = 10;
+    const [limit, setLimit] = useState(20);
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -453,14 +453,18 @@ export default function TransactionsPage() {
                 </div>
             </div>
 
+            {/* Debug Info (Hidden in Production) */}
+            <div className="hidden">
+                Total: {total}, Pages: {totalPages}, Page: {page}, Loaded: {loadedCount}
+            </div>
 
-            {/* Simple Classic Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-6 pb-12 px-2">
+            {/* Pagination Footer */}
+            {(total > limit) && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pb-12 px-2 border-t border-zinc-100 dark:border-zinc-800 pt-6">
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium">
                         Page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
                     </p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
@@ -470,6 +474,27 @@ export default function TransactionsPage() {
                         >
                             Previous
                         </Button>
+
+                        <div className="hidden sm:flex items-center gap-1.5">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                                .map((p, i, arr) => (
+                                    <div key={p} className="flex items-center">
+                                        {i > 0 && arr[i - 1] !== p - 1 && (
+                                            <span className="text-zinc-400 px-1">...</span>
+                                        )}
+                                        <Button
+                                            variant={page === p ? "default" : "outline"}
+                                            size="sm"
+                                            className={`w-9 h-9 p-0 rounded-xl ${page === p ? 'shadow-sm' : 'border-zinc-200 dark:border-zinc-800'}`}
+                                            onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                        >
+                                            {p}
+                                        </Button>
+                                    </div>
+                                ))}
+                        </div>
+
                         <Button
                             variant="outline"
                             size="sm"

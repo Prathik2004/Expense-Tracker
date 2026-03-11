@@ -259,9 +259,9 @@ Replaced manual `axios` lifecycle management with `@tanstack/react-query`.
 - **Provider**: Centralized `QueryClientProvider` in the root layout for global cache access.
 - **Hook**: Created a custom `useTransactions` hook using `useInfiniteQuery` to handle multi-page data state seamlessly.
 
-### 4. Classic Previous/Next Pagination 🔢🚀
-Restored the familiar and reliable **Previous/Next pagination** controls.
-- **UX**: Simple, large buttons for navigating through history.
-- **Data Access**: **Verified 32+ transactions** are accessible across multiple pages (confirmed via DB inspection).
-- **Performance**: Retains backend skip/limit optimizations for fast loading.
+### 4. Robust Numbered Pagination 🔢🏎️
+Restored and optimized the **Numbered Pagination** for precise navigation.
+- **UX**: Choice of page numbers, ellipsis for large datasets, and Previous/Next buttons.
+- **Improved Visibility**: Increased default limit to **20 rows per page**.
+- **Data Access**: Verified 31+ transactions are accessible via multiple pages.
 - **Location**: [transactions/page.tsx](file:///d:/Expense-Tracker/Expense-Tracker/frontend/src/app/(dashboard)/transactions/page.tsx)
