@@ -8,27 +8,26 @@ export function PrivacyShield() {
     const [isHidden, setIsHidden] = useState(false);
 
     useEffect(() => {
-        const handleVisibilityChange = () => {
-            setIsHidden(document.visibilityState === 'hidden');
+        const sync = () => {
+            const hidden = document.visibilityState === 'hidden' || !document.hasFocus();
+            setIsHidden(hidden);
         };
 
-        const handleBlur = () => setIsHidden(true);
-        const handleFocus = () => setIsHidden(false);
+        window.addEventListener("blur", sync);
+        window.addEventListener("focus", sync);
+        document.addEventListener("visibilitychange", sync);
+        window.addEventListener("pagehide", sync);
+        window.addEventListener("pageshow", sync);
 
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-        window.addEventListener("blur", handleBlur);
-        window.addEventListener("focus", handleFocus);
-
-        // Mobile-specific safeties
-        window.addEventListener("pagehide", handleBlur);
-        window.addEventListener("pageshow", handleFocus);
+        // Initial sync
+        sync();
 
         return () => {
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-            window.removeEventListener("blur", handleBlur);
-            window.removeEventListener("focus", handleFocus);
-            window.removeEventListener("pagehide", handleBlur);
-            window.removeEventListener("pageshow", handleFocus);
+            window.removeEventListener("blur", sync);
+            window.removeEventListener("focus", sync);
+            document.removeEventListener("visibilitychange", sync);
+            window.removeEventListener("pagehide", sync);
+            window.removeEventListener("pageshow", sync);
         };
     }, []);
 
@@ -36,12 +35,13 @@ export function PrivacyShield() {
         <AnimatePresence>
             {isHidden && (
                 <motion.div
-                    initial={{ opacity: 0 }}
+                    initial={{ opacity: 1 }} // Instant for snapshot
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.05 }}
+                    transition={{ duration: 0.15 }} // Only affects exit
                     style={{ WebkitBackdropFilter: 'blur(40px)' }}
-                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/95 dark:bg-zinc-950/98 backdrop-blur-2xl"
+                    className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white dark:bg-zinc-950 backdrop-blur-3xl touch-none"
+                    onPointerMove={(e) => e.stopPropagation()}
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
