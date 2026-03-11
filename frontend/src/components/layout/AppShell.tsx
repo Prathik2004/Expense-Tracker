@@ -22,14 +22,21 @@ const AddTransactionModal = dynamic(() => import('@/components/transactions/AddT
     loading: () => null
 });
 const Toaster = dynamic(() => import('sonner').then(mod => mod.Toaster), { ssr: false });
-const DynamicIsland = dynamic(() => import('./DynamicIsland').then(mod => mod.DynamicIsland), { ssr: false });
-const PrivacyShield = dynamic(() => import('./PrivacyShield').then(mod => mod.PrivacyShield), { ssr: false });
+const DynamicIsland = dynamic(() => import('./DynamicIsland').then(mod => mod.DynamicIsland), {
+    ssr: false,
+    loading: () => null
+});
+const PrivacyShield = dynamic(() => import('./PrivacyShield').then(mod => mod.PrivacyShield), {
+    ssr: false,
+    loading: () => null
+});
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
     const [isMounted, setIsMounted] = useState(false);
+    const [isGlobalDeferred, setIsGlobalDeferred] = useState(false);
     const { theme, setTheme } = useTheme();
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -38,6 +45,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setIsMounted(true);
         checkAuth();
+
+        // Defer global components like DynamicIsland and CommandPalette even more on mobile
+        const timer = setTimeout(() => {
+            setIsGlobalDeferred(true);
+        }, 1500);
+        return () => clearTimeout(timer);
     }, [checkAuth]);
 
     useEffect(() => {
@@ -115,9 +128,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
             <Sidebar />
-            <CommandPalette />
-            <DynamicIsland />
-            <PrivacyShield />
+            {isGlobalDeferred && <CommandPalette />}
+            {isGlobalDeferred && <DynamicIsland />}
+            {isGlobalDeferred && <PrivacyShield />}
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}

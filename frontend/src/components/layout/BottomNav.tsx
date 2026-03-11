@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import {
     LayoutDashboard,
@@ -25,6 +26,15 @@ const navItems = [
 export function BottomNav() {
     const pathname = usePathname();
     const user = useAuthStore((state) => state.user);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        // Defer mounting slightly to avoid competing with LCP on slow devices
+        const timer = setTimeout(() => setIsMounted(true), 150);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!isMounted) return null;
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 pb-safe z-50">

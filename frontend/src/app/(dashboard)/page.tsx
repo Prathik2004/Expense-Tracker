@@ -10,7 +10,8 @@ import { KPICards } from "@/components/dashboard/KPICards";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { MagicInput } from "@/components/dashboard/MagicInput";
 import {
-    CategoryChartSkeleton
+    CategoryChartSkeleton,
+    RecentTransactionsSkeleton
 } from "@/components/dashboard/DashboardSkeletons";
 
 const CategoryExpenseChart = dynamic(() => import("@/components/dashboard/CategoryExpenseChart").then(mod => mod.CategoryExpenseChart), {
@@ -41,7 +42,16 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const [isNonCriticalHydrated, setIsNonCriticalHydrated] = useState(false);
     const notifications = useNotificationStore();
+
+    useEffect(() => {
+        // Stagger hydration of non-critical components to free up mobile CPU
+        const timer = setTimeout(() => {
+            setIsNonCriticalHydrated(true);
+        }, 800);
+        return () => clearTimeout(timer);
+    }, []);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -188,14 +198,21 @@ export default function DashboardPage() {
                 portfolioValue={activeSummary?.portfolioValue || 0}
             />
 
-            <div className="grid gap-4 lg:grid-cols-7">
-                <RecentTransactions
-                    transactions={(activeSummary?.transactions || []).slice(0, 5)} // Show top 5 from range
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                />
-                <CategoryExpenseChart data={activeSummary?.categoryBreakdown || []} />
-            </div>
+            {isNonCriticalHydrated ? (
+                <div className="grid gap-4 lg:grid-cols-7">
+                    <RecentTransactions
+                        transactions={(activeSummary?.transactions || []).slice(0, 5)} // Show top 5 from range
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                    />
+                    <CategoryExpenseChart data={activeSummary?.categoryBreakdown || []} />
+                </div>
+            ) : (
+                <div className="grid gap-4 lg:grid-cols-7">
+                    <RecentTransactionsSkeleton />
+                    <CategoryChartSkeleton />
+                </div>
+            )}
 
             <QuickAddFAB onClick={() => { setEditingTransaction(null); setIsAddOpen(true); }} />
 
