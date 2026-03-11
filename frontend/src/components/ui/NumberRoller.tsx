@@ -22,7 +22,7 @@ function Digit({ place, value }: { place: number; value: number }) {
     const y = useTransform(spring, (latest) => -latest);
 
     return (
-        <div className="relative h-8 overflow-hidden inline-[flex-col] tabular-nums" style={{ width: '1ch' }}>
+        <div className="relative h-8 overflow-hidden inline-block tabular-nums" style={{ width: '1ch' }}>
             <motion.div style={{ y }} className="absolute flex flex-col font-bold">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                     <div key={num} className="h-8 flex items-center justify-center">
@@ -52,18 +52,20 @@ export function NumberRoller({ value, className = "" }: NumberRollerProps) {
     const elements = [];
     let digitIndex = 0; // Keep track of digit positions if we needplace multipliers
 
-    for (let i = 0; i < formattedString.length; i++) {
+    for (let i = formattedString.length - 1; i >= 0; i--) {
         const char = formattedString[i];
+        const distanceFromEnd = formattedString.length - 1 - i;
+
         if (/[0-9]/.test(char)) {
             // It's a digit, render a rolling component
-            elements.push(
-                <Digit key={`digit-${i}-${char}`} place={digitIndex} value={parseInt(char, 10)} />
+            elements.unshift(
+                <Digit key={`digit-${distanceFromEnd}`} place={digitIndex} value={parseInt(char, 10)} />
             );
             digitIndex++;
         } else {
             // It's a comma or formatting character, render statically to avoid jumping
-            elements.push(
-                <span key={`static-${i}-${char}`} className="inline-flex h-8 items-end text-zinc-400 font-bold mb-[-4px]">
+            elements.unshift(
+                <span key={`static-${distanceFromEnd}`} className="inline-flex h-8 items-end text-zinc-400 font-bold mb-[-4px]">
                     {char}
                 </span>
             );
