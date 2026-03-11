@@ -61,18 +61,6 @@ export default function DashboardPage() {
         setIsAddOpen(true);
     };
 
-    const handleRadialAdd = (data: { type: "expense" | "income" | "investment", category: string }) => {
-        setEditingTransaction({
-            type: data.type,
-            category: data.category,
-            amount: "", // Ensures amount starts empty for swift number pad entry
-            description: "",
-            date: new Date().toISOString(),
-            _id: undefined // Ensures it is treated as a NEW transaction, not edit
-        });
-        setIsAddOpen(true);
-    };
-
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this transaction?")) return;
         try {
@@ -199,10 +187,7 @@ export default function DashboardPage() {
                 <CategoryExpenseChart data={activeSummary?.categoryBreakdown || []} />
             </div>
 
-            <QuickAddFAB
-                onClick={() => { setEditingTransaction(null); setIsAddOpen(true); }}
-                onSelectRadial={handleRadialAdd}
-            />
+            <QuickAddFAB onClick={() => { setEditingTransaction(null); setIsAddOpen(true); }} />
 
             <AddTransactionModal
                 isOpen={isAddOpen}

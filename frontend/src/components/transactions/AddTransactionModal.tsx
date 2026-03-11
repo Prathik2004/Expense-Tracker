@@ -240,7 +240,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                             }}
                             className="text-3xl h-14 font-semibold px-4 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
                             required
-                            autoFocus
+                            autoFocus={isEdit}
                         />
                     </div>
 
