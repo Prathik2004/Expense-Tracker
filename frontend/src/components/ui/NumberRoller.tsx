@@ -1,51 +1,39 @@
 "use client";
 
 import { motion, useSpring, useTransform } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
+// The height of a single digit container (matches text-2xl line-height roughly)
 const DIGIT_HEIGHT = 32;
 
-function Digit({ place, animatedValue }: { place: number; animatedValue: any }) {
-    // We derive this digit's Y translation based on the total smooth animated value.
-    // e.g., if animatedValue is 123.4, and place is 10 (tens place), 
-    // the value for this digit should be (123.4 / 10) % 10 = 12.34 % 10 = 2.34
-
-    // Math to get the "number of full rotations" + current fraction for this specific place value
-    let y = useTransform(animatedValue, (latest: number) => {
-        // Ensure we don't do weird math with negatives
-        const val = Math.max(0, latest);
-
-        // Calculate what number should be showing here (0-9) including fractional parts for rolling
-        // For place = 1 (units), latest = 125, it should show 5.
-        // For place = 10 (tens), latest = 125, it should show 2.
-
-        const placeValue = (val / place) % 10;
-
-        // Translate Y by -(value * height)
-        // We use % 10 again on the height rendering so it loops visually if we had 10+ digits, 
-        // but here we just render 0-9 and let Framer Motion interpolate the Y translation.
-
-        // If place is larger than the value (e.g., place=100s, value=25), placeValue is 0.25
-        // It should mostly sit at 0 until it hits 1.
-
-        // To make it snap nicely and only roll the next digit when the previous passes 9,
-        // we can simplify: just let it be a continuous continuous roll.
-
-        let offset = placeValue % 10;
-
-        // If offset is negative (shouldn't be due to Math.max), fix it
-        if (offset < 0) offset += 10;
-
-        return -(offset * DIGIT_HEIGHT);
+function Digit({ value }: { value: number }) {
+    // We use a spring to hold the Y translation directly based on the numeric value (0-9).
+    const spring = useSpring(value * DIGIT_HEIGHT, {
+        stiffness: 80, // Lower stiffness = slower, satisfying mechanical feel
+        damping: 15,   // Higher damping = less bouncy
+        mass: 1,
     });
+
+    // Store a ref to the previous value so we can handle rolling backwards perfectly
+    const prevValueRef = useRef(value);
+
+    useEffect(() => {
+        const prev = prevValueRef.current;
+
+        // If the number rolls from 9 to 0, or 0 to 9, it would normally snap across the whole strip.
+        // For a true mechanical feel, it just translates to the target number.
+        // Since we repeat 0-9 if needed, it works well.
+        spring.set(value * DIGIT_HEIGHT);
+        prevValueRef.current = value;
+    }, [spring, value]);
+
+    const y = useTransform(spring, (latest) => -latest);
 
     return (
         <div className="relative h-8 overflow-hidden inline-block tabular-nums" style={{ width: '1ch' }}>
-            <motion.div style={{ y }} className="absolute flex flex-col font-bold">
-                {[...Array(10).keys(), ...Array(10).keys()].map((num, i) => (
-                    // We duplicate the array to [0..9, 0..9] to allow for seamless visually continuing rolls
-                    // However, since we modulo % 10 the Y transform, it will only ever show the first 0-9.
-                    <div key={i} className="h-8 flex items-center justify-center">
+            <motion.div style={{ y }} className="absolute flex flex-col font-bold w-full items-center text-center">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <div key={num} className="h-8 flex items-center justify-center w-full">
                         {num}
                     </div>
                 ))}
@@ -61,43 +49,28 @@ interface NumberRollerProps {
 
 export function NumberRoller({ value, className = "" }: NumberRollerProps) {
     const safeValue = Math.max(0, Math.floor(value));
-
-    // A single spring drives the entire animation. 100 -> 500 smoothly.
-    const animatedValue = useSpring(safeValue, {
-        stiffness: 80,
-        damping: 20, // slightly more damping to prevent overshoot on large numbers
-        mass: 1,
-    });
-
-    useEffect(() => {
-        animatedValue.set(safeValue);
-    }, [animatedValue, safeValue]);
-
-    // Figure out how many digits we need to show
-    // We want to at least show '0' if value is 0.
-    // If value is 1500, we need 4 digits (thousands, hundreds, tens, ones).
     const formattedString = safeValue.toLocaleString('en-IN');
 
-    // We use the formatted string just to know where to place commas and how many digits
+    // To prevent React from destroying digits when string length changes,
+    // we assign a unique key based on its absolute position from the RIGHT (the decimal point).
     const elements = [];
-    let currentPlaceMultiplier = 1;
+    let digitCounter = 0; // Number of digits seen from the right
 
     for (let i = formattedString.length - 1; i >= 0; i--) {
         const char = formattedString[i];
-        const distanceFromEnd = formattedString.length - 1 - i;
+
+        // Unique IDs based on position from the right
+        const idFromRight = formattedString.length - 1 - i;
 
         if (/[0-9]/.test(char)) {
             elements.unshift(
-                <Digit
-                    key={`digit-${distanceFromEnd}`}
-                    place={currentPlaceMultiplier}
-                    animatedValue={animatedValue}
-                />
+                <Digit key={`digit-pos-${digitCounter}`} value={parseInt(char, 10)} />
             );
-            currentPlaceMultiplier *= 10;
+            digitCounter++;
         } else {
+            // Render commas/static characters statically
             elements.unshift(
-                <span key={`static-${distanceFromEnd}`} className="inline-flex h-8 items-end text-zinc-400 font-bold mb-[-4px]">
+                <span key={`static-pos-${idFromRight}`} className="inline-flex h-8 items-end text-zinc-400 font-bold mb-[-4px] px-[1px]">
                     {char}
                 </span>
             );

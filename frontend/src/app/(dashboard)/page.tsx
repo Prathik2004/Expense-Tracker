@@ -89,7 +89,7 @@ export default function DashboardPage() {
         }
     }, []);
 
-    if (isLoading) {
+    if (isLoading && !summary) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
