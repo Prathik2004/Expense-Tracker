@@ -43,9 +43,9 @@ export function Sidebar() {
         <aside className="hidden md:flex flex-col w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 h-screen sticky top-0">
             <div className="p-6 flex items-center space-x-3">
                 <div className="bg-primary/10 p-2 rounded-lg">
-                    <Wallet className="w-6 h-6 text-primary" />
+                    <Wallet className="w-6 h-6 text-primary" strokeWidth={2.5} />
                 </div>
-                <span className="text-xl font-bold tracking-tight">Expensify</span>
+                <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400">Expensify</span>
             </div>
 
             <nav className="flex-1 px-4 space-y-1">
