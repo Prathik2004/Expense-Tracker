@@ -20,6 +20,7 @@ import { AddTransactionModal } from "@/components/transactions/AddTransactionMod
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { hapticWarning } from "@/lib/haptic";
 import { toast } from "sonner";
+import { useNotificationStore } from "@/store/notification.store";
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -27,6 +28,7 @@ export default function TransactionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const notifications = useNotificationStore();
 
     // Filters and pagination
     const [page, setPage] = useState(1);
@@ -135,9 +137,18 @@ export default function TransactionsPage() {
     };
 
     const handleExportCSV = async () => {
+        notifications.show({ type: 'loading', message: 'Preparing CSV...', progress: 30 });
         try {
             const query = getQueryParams();
-            const res = await api.get(`/transactions/export/csv${query}`, { responseType: 'blob' });
+            const res = await api.get(`/transactions/export/csv${query}`, {
+                responseType: 'blob',
+                onDownloadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1000000));
+                    notifications.update({ progress: percentCompleted });
+                }
+            });
+            notifications.update({ type: 'success', message: 'CSV Exported!', progress: 100 });
+
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -145,15 +156,27 @@ export default function TransactionsPage() {
             document.body.appendChild(link);
             link.click();
             link.remove();
+
+            setTimeout(() => notifications.hide(), 3000);
         } catch (err) {
             console.error("Failed to export contents", err);
+            notifications.show({ type: 'error', message: 'CSV Export Failed' });
         }
     };
 
     const handleExportPDF = async () => {
+        notifications.show({ type: 'loading', message: 'Generating PDF Report...', progress: 20 });
         try {
             const query = getQueryParams();
-            const res = await api.get(`/transactions/export/pdf${query}`, { responseType: 'blob' });
+            const res = await api.get(`/transactions/export/pdf${query}`, {
+                responseType: 'blob',
+                onDownloadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 3000000));
+                    notifications.update({ progress: percentCompleted });
+                }
+            });
+            notifications.update({ type: 'success', message: 'Report Ready!', progress: 100 });
+
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -161,8 +184,11 @@ export default function TransactionsPage() {
             document.body.appendChild(link);
             link.click();
             link.remove();
+
+            setTimeout(() => notifications.hide(), 3000);
         } catch (err) {
             console.error("Failed to export PDF", err);
+            notifications.show({ type: 'error', message: 'PDF Export Failed' });
         }
     };
 

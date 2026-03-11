@@ -12,6 +12,8 @@ import { io } from 'socket.io-client';
 import { CommandPalette } from './CommandPalette';
 import { AddTransactionModal } from '@/components/transactions/AddTransactionModal';
 import { Toaster } from 'sonner';
+import { DynamicIsland } from './DynamicIsland';
+import { useNotificationStore } from '@/store/notification.store';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
@@ -97,6 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
             <Sidebar />
             <CommandPalette />
+            <DynamicIsland />
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}
