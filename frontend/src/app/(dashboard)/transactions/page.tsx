@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { Plus, Search, Filter, Download, FileText, ChevronDown, ChevronUp, X, Loader2, Edit2, Trash2, Copy } from "lucide-react";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
+import { hapticWarning } from "@/lib/haptic";
 import { toast } from "sonner";
 
 export default function TransactionsPage() {
@@ -83,6 +84,7 @@ export default function TransactionsPage() {
     };
 
     const handleDelete = async (id: string) => {
+        hapticWarning();
         toast.warning("Confirm Deletion", {
             description: "Are you sure you want to delete this transaction? This action cannot be undone.",
             action: {

@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { evaluateMath } from "@/lib/mathParser";
+import { hapticLight, hapticSuccess } from "@/lib/haptic";
+
 
 interface AddTxProps {
     isOpen: boolean;
@@ -137,6 +139,7 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                 await api.post("/transactions", data);
             }
 
+            hapticSuccess();
             onSuccess();
             onClose();
 
@@ -214,7 +217,10 @@ export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }:
                                     variant="outline"
                                     size="sm"
                                     className="h-8 w-10 flex-shrink-0 border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                    onClick={() => setAmount((prev: string) => prev + op)}
+                                    onClick={() => {
+                                        hapticLight();
+                                        setAmount((prev: string) => prev + op);
+                                    }}
                                 >
                                     {op === '*' ? '×' : op === '/' ? '÷' : op}
                                 </Button>

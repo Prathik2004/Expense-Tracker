@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { parseMagicInput } from "@/lib/magicParser";
 
+import { hapticSuccess } from "@/lib/haptic";
+
 interface MagicInputProps {
     onMagicAdd: (data: { amount: number; category: string; description: string }) => void;
     categories: string[];
@@ -18,6 +20,7 @@ export function MagicInput({ onMagicAdd, categories }: MagicInputProps) {
         if (!value.trim()) return;
 
         const parsed = parseMagicInput(value, categories);
+        hapticSuccess();
         onMagicAdd(parsed);
         setValue(""); // Clear after submitting
     };

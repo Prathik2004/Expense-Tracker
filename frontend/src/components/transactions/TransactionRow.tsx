@@ -5,6 +5,8 @@ import { motion, useAnimation, PanInfo } from "framer-motion";
 import { Trash2, Copy } from "lucide-react";
 import { format } from "date-fns";
 
+import { hapticLight, hapticWarning } from "@/lib/haptic";
+
 interface TransactionRowProps {
     transaction: any;
     onDelete: (id: string) => void;
@@ -24,9 +26,11 @@ export function TransactionRow({ transaction, onDelete, onCopy, onEdit }: Transa
         const threshold = 60; // Lower threshold for better mobile feel
         if (info.offset.x < -threshold) {
             // Swipe Left -> Delete
+            hapticWarning();
             onDelete(transaction._id);
         } else if (info.offset.x > threshold) {
             // Swipe Right -> Copy
+            hapticLight();
             onCopy(transaction);
         }
 
