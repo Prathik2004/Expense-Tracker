@@ -11,7 +11,8 @@ import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { MagicInput } from "@/components/dashboard/MagicInput";
 import {
     CategoryChartSkeleton,
-    RecentTransactionsSkeleton
+    RecentTransactionsSkeleton,
+    KPICardsSkeleton
 } from "@/components/dashboard/DashboardSkeletons";
 
 const CategoryExpenseChart = dynamic(() => import("@/components/dashboard/CategoryExpenseChart").then(mod => mod.CategoryExpenseChart), {
@@ -201,7 +202,7 @@ export default function DashboardPage() {
             {isNonCriticalHydrated ? (
                 <div className="grid gap-4 lg:grid-cols-7">
                     <RecentTransactions
-                        transactions={(activeSummary?.transactions || []).slice(0, 5)} // Show top 5 from range
+                        transactions={(activeSummary?.transactions || []).slice(0, 5)}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                     />
