@@ -12,19 +12,23 @@ export function PrivacyShield() {
             setIsHidden(document.visibilityState === 'hidden');
         };
 
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-
-        // Also handle blur event for some browsers/system switchers
         const handleBlur = () => setIsHidden(true);
         const handleFocus = () => setIsHidden(false);
 
+        document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleBlur);
         window.addEventListener("focus", handleFocus);
+
+        // Mobile-specific safeties
+        window.addEventListener("pagehide", handleBlur);
+        window.addEventListener("pageshow", handleFocus);
 
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleBlur);
             window.removeEventListener("focus", handleFocus);
+            window.removeEventListener("pagehide", handleBlur);
+            window.removeEventListener("pageshow", handleFocus);
         };
     }, []);
 
@@ -35,8 +39,9 @@ export function PrivacyShield() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/30 dark:bg-zinc-950/30 backdrop-blur-2xl"
+                    transition={{ duration: 0.05 }}
+                    style={{ WebkitBackdropFilter: 'blur(40px)' }}
+                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/95 dark:bg-zinc-950/98 backdrop-blur-2xl"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
