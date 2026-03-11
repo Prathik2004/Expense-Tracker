@@ -2,14 +2,19 @@
 
 import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/api";
-import { KPICards } from "@/components/dashboard/KPICards";
-import { CategoryExpenseChart } from "@/components/dashboard/CategoryExpenseChart";
-import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { QuickAddFAB } from "@/components/transactions/QuickAddFAB";
-import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
-import { MagicInput } from "@/components/dashboard/MagicInput";
+import dynamic from 'next/dynamic';
 import { Loader2 } from "lucide-react";
 import { useNotificationStore } from "@/store/notification.store";
+
+const KPICards = dynamic(() => import("@/components/dashboard/KPICards").then(mod => mod.KPICards), { ssr: false });
+const CategoryExpenseChart = dynamic(() => import("@/components/dashboard/CategoryExpenseChart").then(mod => mod.CategoryExpenseChart), {
+    ssr: false,
+    loading: () => <div className="h-[300px] w-full bg-zinc-100 dark:bg-zinc-800/50 animate-pulse rounded-xl" />
+});
+const RecentTransactions = dynamic(() => import("@/components/dashboard/RecentTransactions").then(mod => mod.RecentTransactions), { ssr: false });
+const QuickAddFAB = dynamic(() => import("@/components/transactions/QuickAddFAB").then(mod => mod.QuickAddFAB), { ssr: false });
+const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal").then(mod => mod.AddTransactionModal), { ssr: false });
+const MagicInput = dynamic(() => import("@/components/dashboard/MagicInput").then(mod => mod.MagicInput), { ssr: false });
 
 const CATEGORIES_LIST = [
     "Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping",

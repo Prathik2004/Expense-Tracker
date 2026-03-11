@@ -9,12 +9,16 @@ import { Loader2, Moon, Sun, LogOut, Wallet } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { io } from 'socket.io-client';
-import { CommandPalette } from './CommandPalette';
-import { AddTransactionModal } from '@/components/transactions/AddTransactionModal';
-import { Toaster } from 'sonner';
-import { DynamicIsland } from './DynamicIsland';
-import { useNotificationStore } from '@/store/notification.store';
-import { PrivacyShield } from './PrivacyShield';
+import dynamic from 'next/dynamic';
+
+const CommandPalette = dynamic(() => import('./CommandPalette').then(mod => mod.CommandPalette), { ssr: false });
+const AddTransactionModal = dynamic(() => import('@/components/transactions/AddTransactionModal').then(mod => mod.AddTransactionModal), {
+    ssr: false,
+    loading: () => null
+});
+const Toaster = dynamic(() => import('sonner').then(mod => mod.Toaster), { ssr: false });
+const DynamicIsland = dynamic(() => import('./DynamicIsland').then(mod => mod.DynamicIsland), { ssr: false });
+const PrivacyShield = dynamic(() => import('./PrivacyShield').then(mod => mod.PrivacyShield), { ssr: false });
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
+import dynamic from 'next/dynamic';
 import {
     Table,
     TableBody,
@@ -16,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Plus, Search, Filter, Download, FileText, ChevronDown, ChevronUp, X, Loader2, Edit2, Trash2, Copy } from "lucide-react";
-import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { hapticWarning } from "@/lib/haptic";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/store/notification.store";
+
+const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal").then(mod => mod.AddTransactionModal), { ssr: false });
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
