@@ -14,6 +14,7 @@ import { AddTransactionModal } from '@/components/transactions/AddTransactionMod
 import { Toaster } from 'sonner';
 import { DynamicIsland } from './DynamicIsland';
 import { useNotificationStore } from '@/store/notification.store';
+import { PrivacyShield } from './PrivacyShield';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
@@ -100,6 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Sidebar />
             <CommandPalette />
             <DynamicIsland />
+            <PrivacyShield />
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}
