@@ -37,11 +37,16 @@ export class TransactionsService {
     return inserted;
   }
 
-  async findAll(userId: string, query: any): Promise<{ data: TransactionDocument[], total: number }> {
+  async findAll(userId: string, query: any): Promise<{
+    data: TransactionDocument[],
+    totalItems: number,
+    totalPages: number,
+    currentPage: number
+  }> {
     const {
       page = 1,
       limit = 10,
-      type,
+      type = 'all',
       category,
       startDate,
       endDate,
@@ -51,15 +56,16 @@ export class TransactionsService {
       sort = 'date',
       order = 'desc'
     } = query;
+
     const filter: any = { userId };
 
-    if (type && type !== 'all') filter.type = type;
+    if (type !== 'all') filter.type = type;
 
     if (category) {
-      const categories = category.split(',');
+      const categories = category.split(',').filter(Boolean);
       if (categories.length > 1) {
         filter.category = { $in: categories };
-      } else {
+      } else if (categories.length === 1) {
         filter.category = categories[0];
       }
     }
@@ -82,18 +88,32 @@ export class TransactionsService {
 
     const sortObj: any = {};
     sortObj[sort] = order === 'asc' ? 1 : -1;
+    // Secondary sort to ensure consistent ordering
     if (sort !== 'createdAt') {
       sortObj.createdAt = order === 'asc' ? 1 : -1;
     }
 
-    const skip = (page - 1) * limit;
+    const currentPage = Math.max(1, Number(page));
+    const itemsPerPage = Math.max(1, Number(limit));
+    const skip = (currentPage - 1) * itemsPerPage;
 
-    const [data, total] = await Promise.all([
-      this.transactionModel.find(filter).sort(sortObj).skip(skip).limit(Number(limit)).exec(),
+    const [data, totalItems] = await Promise.all([
+      this.transactionModel.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(itemsPerPage)
+        .exec(),
       this.transactionModel.countDocuments(filter).exec()
     ]);
 
-    return { data, total };
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    return {
+      data,
+      totalItems,
+      totalPages,
+      currentPage
+    };
   }
 
   async findOne(userId: string, id: string): Promise<TransactionDocument> {

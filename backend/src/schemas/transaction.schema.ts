@@ -33,3 +33,5 @@ export class Transaction {
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
+
+TransactionSchema.index({ userId: 1, date: -1 });

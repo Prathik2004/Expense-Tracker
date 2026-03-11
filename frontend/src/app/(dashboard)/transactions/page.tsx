@@ -34,19 +34,16 @@ import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { hapticWarning } from "@/lib/haptic";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/store/notification.store";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal").then(mod => mod.AddTransactionModal), { ssr: false });
 
 export default function TransactionsPage() {
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [total, setTotal] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const queryClient = useQueryClient();
     const notifications = useNotificationStore();
 
-    // Filters and pagination
-    const [page, setPage] = useState(1);
+    // Filters
     const [type, setType] = useState<string>("all");
     const [search, setSearch] = useState("");
     const [startDate, setStartDate] = useState("");
@@ -56,49 +53,43 @@ export default function TransactionsPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
-    const limit = 10;
+    // UI State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+
+    const filters = {
+        type,
+        search,
+        startDate,
+        endDate,
+        minAmount,
+        maxAmount,
+        category: selectedCategories.join(','),
+    };
+
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        refetch
+    } = useTransactions(filters);
+
+    const transactions = data?.pages.flatMap(page => page.data) || [];
+    const total = data?.pages[0]?.totalItems || 0;
 
 
     useEffect(() => {
-        fetchTransactions();
-
         const handleSync = () => {
-            fetchTransactions();
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
         };
 
         window.addEventListener('sync_transactions', handleSync);
         return () => {
             window.removeEventListener('sync_transactions', handleSync);
         };
-    }, [page, type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
-
-    // Reset to page 1 when filters change
-    useEffect(() => {
-        setPage(1);
-    }, [type, startDate, endDate, minAmount, maxAmount, selectedCategories, search]);
-
-
-    const fetchTransactions = async () => {
-        setIsLoading(true);
-        try {
-            let url = `/transactions?page=${page}&limit=${limit}`;
-            if (type !== "all") url += `&type=${type}`;
-            if (startDate) url += `&startDate=${startDate}`;
-            if (endDate) url += `&endDate=${endDate}`;
-            if (minAmount) url += `&minAmount=${minAmount}`;
-            if (maxAmount) url += `&maxAmount=${maxAmount}`;
-            if (selectedCategories.length > 0) url += `&category=${selectedCategories.join(',')}`;
-            if (search) url += `&search=${search}`;
-
-            const res = await api.get(url);
-            setTransactions(res.data.data);
-            setTotal(res.data.total);
-        } catch (err) {
-            console.error("Failed to fetch transactions", err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [queryClient]);
 
     const handleDelete = async (id: string) => {
         hapticWarning();
@@ -110,7 +101,7 @@ export default function TransactionsPage() {
                     try {
                         await api.delete(`/transactions/${id}`);
                         toast.success("Transaction deleted successfully");
-                        fetchTransactions();
+                        queryClient.invalidateQueries({ queryKey: ['transactions'] });
                     } catch (err) {
                         console.error("Failed to delete transaction", err);
                         toast.error("Failed to delete transaction. Please try again.");
@@ -213,7 +204,6 @@ export default function TransactionsPage() {
         "Indian Stocks", "US Stocks", "Mutual Funds", "Gold", "Silver", "Bonds", "Crypto", "Other"
     ].sort();
 
-    const totalPages = Math.ceil(total / limit);
 
     return (
         <div className="space-y-6 pb-20">
@@ -453,36 +443,31 @@ export default function TransactionsPage() {
                 </div>
             </div>
 
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-4">
-                    <p className="text-sm text-zinc-500">
-                        Showing page {page} of {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            disabled={page === 1}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(Math.min(totalPages, page + 1))}
-                            disabled={page === totalPages}
-                        >
-                            Next
-                        </Button>
-                    </div>
+            {hasNextPage && (
+                <div className="mt-8 flex justify-center pb-8">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="px-12 h-12 rounded-full border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all shadow-sm"
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                    >
+                        {isFetchingNextPage ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Loading More...
+                            </>
+                        ) : (
+                            "Load More Transactions"
+                        )}
+                    </Button>
                 </div>
             )}
 
             <AddTransactionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSuccess={fetchTransactions}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['transactions'] })}
                 transaction={editingTransaction}
             />
         </div>
