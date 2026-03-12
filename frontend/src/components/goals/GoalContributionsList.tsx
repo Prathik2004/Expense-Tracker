@@ -16,6 +16,7 @@ interface GoalContributionsListProps {
         title?: string;
         currentAmount: number;
         targetAmount: number;
+        deadline: string;
     } | null;
 }
 
@@ -35,6 +36,7 @@ const formatAssetType = (type: string) => {
 };
 
 import { ContributionRow } from "./ContributionRow";
+import { SavingsPacer } from "./SavingsPacer";
 
 export function GoalContributionsList({ isOpen, onClose, onContributionDeleted, goal }: GoalContributionsListProps) {
     const [contributions, setContributions] = useState<any[]>([]);
@@ -97,6 +99,20 @@ export function GoalContributionsList({ isOpen, onClose, onContributionDeleted, 
                                 ₹{goal.currentAmount.toLocaleString('en-IN')}
                             </span>
                         </div>
+                        <div className="flex flex-col items-end text-right">
+                            <span className="text-zinc-500 text-sm mb-1">Target</span>
+                            <span className="text-xl font-bold text-zinc-400">
+                                ₹{goal.targetAmount.toLocaleString('en-IN')}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mb-6 shrink-0">
+                        <SavingsPacer
+                            targetAmount={goal.targetAmount}
+                            currentAmount={goal.currentAmount}
+                            targetDate={goal.deadline}
+                        />
                     </div>
 
                     <ScrollArea className="flex-1 -mx-4 px-4">
