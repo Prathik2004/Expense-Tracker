@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
+import { EditGoalModal } from "@/components/goals/EditGoalModal";
 import { AddFundsModal } from "@/components/goals/AddFundsModal";
 import { GoalContributionsList } from "@/components/goals/GoalContributionsList";
-import { Loader2, Plus, Target, Trash2, List, Sparkles } from "lucide-react";
+import { Loader2, Plus, Target, Trash2, List, Sparkles, Pencil } from "lucide-react";
 import { PhysicsJar } from "@/components/goals/PhysicsJar";
 
 export default function GoalsPage() {
@@ -19,6 +20,10 @@ export default function GoalsPage() {
     // Add Funds Modal state
     const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState<any>(null);
+
+    // Edit Modal state
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [selectedEditGoal, setSelectedEditGoal] = useState<any>(null);
 
     // Details Modal state
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -55,6 +60,11 @@ export default function GoalsPage() {
     const handleOpenContribute = (goal: any) => {
         setSelectedGoal(goal);
         setIsAddFundsOpen(true);
+    };
+
+    const handleOpenEdit = (goal: any) => {
+        setSelectedEditGoal(goal);
+        setIsEditOpen(true);
     };
 
     const handleOpenDetails = (goal: any) => {
@@ -112,13 +122,22 @@ export default function GoalsPage() {
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg font-semibold">{goalName}</CardTitle>
-                                        <button
-                                            onClick={() => handleDelete(goal._id)}
-                                            className="text-zinc-400 hover:text-destructive transition-colors"
-                                            aria-label={`Delete ${goalName} goal`}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => handleOpenEdit(goal)}
+                                                className="text-zinc-400 hover:text-primary transition-colors p-1"
+                                                aria-label={`Edit ${goalName} goal`}
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(goal._id)}
+                                                className="text-zinc-400 hover:text-destructive transition-colors p-1"
+                                                aria-label={`Delete ${goalName} goal`}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                     <CardDescription>
                                         By {formatDate(goal.deadline)}
@@ -179,6 +198,13 @@ export default function GoalsPage() {
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 onSuccess={fetchGoals}
+            />
+
+            <EditGoalModal
+                isOpen={isEditOpen}
+                onClose={() => setIsEditOpen(false)}
+                onSuccess={fetchGoals}
+                goal={selectedEditGoal}
             />
 
             <AddFundsModal
