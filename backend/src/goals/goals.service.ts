@@ -72,4 +72,21 @@ export class GoalsService {
   async getContributions(userId: string, goalId: string): Promise<GoalContributionDocument[]> {
     return this.contributionModel.find({ goalId, userId } as any).sort({ date: -1 }).exec();
   }
+
+  async removeContribution(userId: string, goalId: string, contributionId: string): Promise<GoalDocument> {
+    const contribution = await this.contributionModel.findOne({ _id: contributionId, goalId, userId } as any).exec();
+    if (!contribution) throw new NotFoundException('Contribution not found');
+
+    const goal = await this.goalModel.findOneAndUpdate(
+      { _id: goalId, userId } as any,
+      { $inc: { currentAmount: -contribution.amount } },
+      { new: true }
+    ).exec();
+
+    if (!goal) throw new NotFoundException('Goal not found');
+
+    await this.contributionModel.deleteOne({ _id: contributionId }).exec();
+
+    return goal as any;
+  }
 }

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 interface GoalContributionsListProps {
     isOpen: boolean;
     onClose: () => void;
+    onContributionDeleted?: () => void; // Notify parent to refresh goal data
     goal: {
         _id: string;
         name?: string;
@@ -25,7 +26,7 @@ const getAssetColor = (type: string) => {
         case "stocks": return "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400";
         case "mutual_funds": return "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400";
         case "fds": return "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400";
-        default: return "bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/20 dark:text-zinc-400"; // liquid & other
+        default: return "bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/20 dark:text-zinc-400";
     }
 };
 
@@ -33,7 +34,9 @@ const formatAssetType = (type: string) => {
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
-export function GoalContributionsList({ isOpen, onClose, goal }: GoalContributionsListProps) {
+import { ContributionRow } from "./ContributionRow";
+
+export function GoalContributionsList({ isOpen, onClose, onContributionDeleted, goal }: GoalContributionsListProps) {
     const [contributions, setContributions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -52,6 +55,18 @@ export function GoalContributionsList({ isOpen, onClose, goal }: GoalContributio
             console.error("Failed to fetch contributions", err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleRemove = async (contributionId: string) => {
+        if (!confirm("Are you sure you want to delete this contribution? This will reduce your goal progress.")) return;
+
+        try {
+            await api.delete(`/goals/${goal?._id}/contributions/${contributionId}`);
+            setContributions(prev => prev.filter(c => c._id !== contributionId));
+            onContributionDeleted?.();
+        } catch (err) {
+            console.error("Failed to delete contribution", err);
         }
     };
 
@@ -101,28 +116,13 @@ export function GoalContributionsList({ isOpen, onClose, goal }: GoalContributio
                         ) : (
                             <div className="space-y-3 pb-4">
                                 {contributions.map((c) => (
-                                    <div key={c._id} className="flex items-start justify-between p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900">
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center space-x-2 mb-1.5">
-                                                <Badge variant="secondary" className={`${getAssetColor(c.assetType)} border-0 font-medium`}>
-                                                    {formatAssetType(c.assetType)}
-                                                </Badge>
-                                                <span className="text-xs text-zinc-400">
-                                                    {format(new Date(c.date), "MMM d, yyyy")}
-                                                </span>
-                                            </div>
-                                            {c.notes && (
-                                                <p className="text-sm text-zinc-600 dark:text-zinc-400 italic line-clamp-2">
-                                                    "{c.notes}"
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="text-right pl-3 shrink-0">
-                                            <div className="font-semibold text-emerald-600 dark:text-emerald-500">
-                                                +₹{c.amount.toLocaleString('en-IN')}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <ContributionRow
+                                        key={c._id}
+                                        contribution={c}
+                                        onDelete={handleRemove}
+                                        getAssetColor={getAssetColor}
+                                        formatAssetType={formatAssetType}
+                                    />
                                 ))}
                             </div>
                         )}

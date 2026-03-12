@@ -197,6 +197,7 @@ export default function GoalsPage() {
             <GoalContributionsList
                 isOpen={isDetailsOpen}
                 onClose={() => setIsDetailsOpen(false)}
+                onContributionDeleted={fetchGoals}
                 goal={selectedDetailsGoal}
             />
         </div>

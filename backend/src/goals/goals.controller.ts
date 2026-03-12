@@ -50,4 +50,13 @@ export class GoalsController {
   getContributions(@Request() req: any, @Param('id') id: string) {
     return this.goalsService.getContributions(req.user.userId, id);
   }
+
+  @Delete(':id/contributions/:contributionId')
+  removeContribution(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Param('contributionId') contributionId: string
+  ) {
+    return this.goalsService.removeContribution(req.user.userId, id, contributionId);
+  }
 }
