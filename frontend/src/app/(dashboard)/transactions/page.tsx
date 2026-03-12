@@ -81,7 +81,7 @@ export default function TransactionsPage() {
 
     const transactions = data?.data || [];
     const total = data?.totalItems || 0;
-    const totalPages = data?.totalPages || 0;
+    const totalPages = data?.totalPages || Math.ceil(total / limit) || 0;
     const loadedCount = transactions.length;
 
     // Reset to page 1 when any filter changes
@@ -464,7 +464,7 @@ export default function TransactionsPage() {
             </div>
 
             {/* Pagination Footer */}
-            {(totalPages > 1) && (
+            {(totalPages > 1 || total > limit) && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pb-12 px-2 border-t border-zinc-100 dark:border-zinc-800 pt-6">
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium">
                         Page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
