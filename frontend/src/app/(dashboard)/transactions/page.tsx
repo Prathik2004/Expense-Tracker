@@ -54,7 +54,7 @@ export default function TransactionsPage() {
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
+    const [limit, setLimit] = useState(10);
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
