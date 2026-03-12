@@ -84,6 +84,11 @@ export default function TransactionsPage() {
     const totalPages = data?.totalPages || 0;
     const loadedCount = transactions.length;
 
+    // Reset to page 1 when any filter changes
+    useEffect(() => {
+        setPage(1);
+    }, [type, search, startDate, endDate, minAmount, maxAmount, selectedCategories]);
+
 
     useEffect(() => {
         const handleSync = () => {
@@ -248,7 +253,7 @@ export default function TransactionsPage() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Select value={type} onValueChange={(v) => { setType(v as string); setPage(1); }}>
+                        <Select value={type} onValueChange={(v) => { setType(v as string); }}>
                             <SelectTrigger className="w-[140px] h-10">
                                 <SelectValue placeholder="Type" />
                             </SelectTrigger>
@@ -459,7 +464,7 @@ export default function TransactionsPage() {
             </div>
 
             {/* Pagination Footer */}
-            {(total > limit) && (
+            {(totalPages > 1) && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pb-12 px-2 border-t border-zinc-100 dark:border-zinc-800 pt-6">
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium">
                         Page <span className="text-zinc-900 dark:text-zinc-100">{page}</span> of <span className="text-zinc-900 dark:text-zinc-100">{totalPages}</span>
@@ -470,7 +475,7 @@ export default function TransactionsPage() {
                             size="sm"
                             className="h-9 px-4 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                             onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            disabled={page === 1}
+                            disabled={page <= 1}
                         >
                             Previous
                         </Button>
@@ -500,7 +505,7 @@ export default function TransactionsPage() {
                             size="sm"
                             className="h-9 px-4 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                             onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            disabled={page === totalPages}
+                            disabled={page >= totalPages}
                         >
                             Next
                         </Button>
