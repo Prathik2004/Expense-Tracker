@@ -111,6 +111,7 @@ export default function GoalsPage() {
                                         <button
                                             onClick={() => handleDelete(goal._id)}
                                             className="text-zinc-400 hover:text-destructive transition-colors"
+                                            aria-label={`Delete ${goalName} goal`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -125,11 +126,11 @@ export default function GoalsPage() {
                                             <span className={isCompleted ? "text-emerald-600 dark:text-emerald-500" : ""}>
                                                 ₹{goal.currentAmount.toLocaleString('en-IN')}
                                             </span>
-                                            <span className="text-zinc-500">
+                                            <span className="text-zinc-600 dark:text-zinc-400">
                                                 ₹{goal.targetAmount.toLocaleString('en-IN')}
                                             </span>
                                         </div>
-                                        <Progress value={percent} className="h-2" />
+                                        <Progress value={percent} className="h-2" aria-label={`${goalName} progress`} />
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex gap-2">
