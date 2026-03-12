@@ -8,7 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
 import { AddFundsModal } from "@/components/goals/AddFundsModal";
 import { GoalContributionsList } from "@/components/goals/GoalContributionsList";
-import { Loader2, Plus, Target, Trash2, List } from "lucide-react";
+import { Loader2, Plus, Target, Trash2, List, Sparkles } from "lucide-react";
+import { PhysicsJar } from "@/components/goals/PhysicsJar";
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState<any[]>([]);
@@ -22,6 +23,9 @@ export default function GoalsPage() {
     // Details Modal state
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedDetailsGoal, setSelectedDetailsGoal] = useState<any>(null);
+
+    // Physics Animation trigger
+    const [animationTrigger, setAnimationTrigger] = useState<{ [key: string]: number }>({});
 
     useEffect(() => {
         fetchGoals();
@@ -121,16 +125,30 @@ export default function GoalsPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between text-sm font-medium mb-1.5">
-                                            <span className={isCompleted ? "text-emerald-600 dark:text-emerald-500" : ""}>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm font-medium mb-1.5 px-1">
+                                            <span className={isCompleted ? "text-emerald-600 dark:text-emerald-500" : "text-zinc-900 dark:text-zinc-100"}>
                                                 ₹{goal.currentAmount.toLocaleString('en-IN')}
                                             </span>
                                             <span className="text-zinc-600 dark:text-zinc-400">
                                                 ₹{goal.targetAmount.toLocaleString('en-IN')}
                                             </span>
                                         </div>
-                                        <Progress value={percent} className="h-2" aria-label={`${goalName} progress`} />
+
+                                        <PhysicsJar
+                                            currentAmount={goal.currentAmount}
+                                            targetAmount={goal.targetAmount}
+                                            goalName={goalName}
+                                            triggerAnimation={animationTrigger[goal._id] || 0}
+                                        />
+
+                                        <div className="px-1">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Progress</span>
+                                                <span className="text-[10px] font-bold text-zinc-500">{Math.round(percent)}%</span>
+                                            </div>
+                                            <Progress value={percent} className="h-1.5" aria-label={`${goalName} progress`} />
+                                        </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex gap-2">
@@ -166,7 +184,13 @@ export default function GoalsPage() {
             <AddFundsModal
                 isOpen={isAddFundsOpen}
                 onClose={() => setIsAddFundsOpen(false)}
-                onSuccess={fetchGoals}
+                onSuccess={(goalId: string) => {
+                    fetchGoals();
+                    setAnimationTrigger(prev => ({
+                        ...prev,
+                        [goalId]: (prev[goalId] || 0) + 1
+                    }));
+                }}
                 goal={selectedGoal}
             />
 

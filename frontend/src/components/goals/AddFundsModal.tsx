@@ -19,7 +19,7 @@ import { Loader2 } from "lucide-react";
 interface AddFundsProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (goalId: string) => void;
     goal: {
         _id: string;
         name?: string;
@@ -63,7 +63,7 @@ export function AddFundsModal({ isOpen, onClose, onSuccess, goal }: AddFundsProp
                 assetType: assetType,
                 notes: notes
             });
-            onSuccess();
+            onSuccess(goal._id);
             onClose();
             setAmount("");
             setAssetType("liquid");
