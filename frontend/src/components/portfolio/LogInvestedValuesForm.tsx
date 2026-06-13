@@ -18,8 +18,6 @@ const ASSET_CLASSES = [
     { id: "mutual_funds", label: "Mutual Funds", category: "Mutual Funds" },
     { id: "gold", label: "Gold", category: "Gold" },
     { id: "silver", label: "Silver", category: "Silver" },
-    { id: "bonds", label: "Bonds", category: "Bonds" },
-    { id: "crypto", label: "Crypto", category: "Crypto" },
 ];
 
 export function LogInvestedValuesForm({ onSuccess }: LogInvestedValuesFormProps) {
@@ -79,9 +77,9 @@ export function LogInvestedValuesForm({ onSuccess }: LogInvestedValuesFormProps)
     return (
         <Card className="h-full">
             <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Log Invested Values</CardTitle>
+                    <CardTitle className="text-lg">Log Portfolio Values</CardTitle>
                 <CardDescription>
-                    Quickly log your current starting balances across different asset classes.
+                    Manually update the tracked asset values. The next Excel sync will overwrite them.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -115,7 +113,7 @@ export function LogInvestedValuesForm({ onSuccess }: LogInvestedValuesFormProps)
                         disabled={isLoading}
                     >
                         {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                        Save Investment Portfolio
+                        Save Portfolio Values
                     </Button>
                 </form>
             </CardContent>

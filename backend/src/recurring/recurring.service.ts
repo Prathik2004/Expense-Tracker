@@ -3,12 +3,16 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Transaction, TransactionDocument } from '../schemas/transaction.schema';
+import { PortfolioService } from '../portfolio/portfolio.service';
 
 @Injectable()
 export class RecurringService {
     private readonly logger = new Logger(RecurringService.name);
 
-    constructor(@InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>) { }
+    constructor(
+        @InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>,
+        private readonly portfolioService: PortfolioService,
+    ) { }
 
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
     async handleRecurringTransactions() {
@@ -54,6 +58,23 @@ export class RecurringService {
                 await newTx.save();
                 this.logger.debug(`Generated new transaction for user ${(template.userId as any).toString()}`);
             }
+        }
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async handlePortfolioSync() {
+        this.logger.debug('Running daily portfolio sync');
+
+        try {
+            const result = await this.portfolioService.syncPortfolioForCron();
+            if (result?.skipped) {
+                this.logger.warn(result.message);
+                return;
+            }
+
+            this.logger.debug(`Portfolio sync finished successfully for user ${result?.logId || 'unknown'}`);
+        } catch (error: any) {
+            this.logger.error(`Portfolio sync failed: ${error?.message || error}`);
         }
     }
 }

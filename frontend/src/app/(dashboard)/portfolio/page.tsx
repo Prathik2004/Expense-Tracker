@@ -2,31 +2,30 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Loader2, IndianRupee, PieChart, ArrowUpRight, ArrowDownRight, Edit3, Eye, EyeOff } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UpdateValuationModal } from "@/components/dashboard/UpdateValuationModal";
-import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { Loader2, IndianRupee, RefreshCcw, TrendingUp, Landmark, Globe, Gem, Coins } from "lucide-react";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
 import { LogInvestedValuesForm } from "@/components/portfolio/LogInvestedValuesForm";
+
+const TRACKED_ASSETS = [
+    { key: "Indian Stocks", label: "Indian Stocks", icon: Landmark },
+    { key: "US Stocks", label: "US Stocks", icon: Globe },
+    { key: "Mutual Funds", label: "Mutual Funds", icon: TrendingUp },
+    { key: "Gold", label: "Gold", icon: Gem },
+    { key: "Silver", label: "Silver", icon: Coins },
+];
 
 export default function PortfolioPage() {
     const [summary, setSummary] = useState<any>(null);
-    const [investments, setInvestments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isValuationOpen, setIsValuationOpen] = useState(false);
-    const [isVisible, setIsVisible] = useState(true);
-
-    const [holdings, setHoldings] = useState<any[]>([]);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [summaryRes, txRes] = await Promise.all([
-                api.get("/portfolio"),
-                api.get("/transactions?type=investment&limit=10")
-            ]);
+            const summaryRes = await api.get("/portfolio");
             setSummary(summaryRes.data);
-            setHoldings(summaryRes.data.holdings || []);
-            setInvestments(txRes.data.data);
         } catch (err) {
             console.error("Failed to fetch portfolio data", err);
         } finally {
@@ -47,6 +46,23 @@ export default function PortfolioPage() {
         };
     }, []);
 
+        const handleManualSync = async () => {
+            setIsSyncing(true);
+            try {
+                const response = await api.post('/portfolio/sync/manual');
+                toast.success('Portfolio synced from OneDrive', {
+                    description: `Updated ${response.data?.holdings?.length || 0} tracked assets.`,
+                });
+                await fetchData();
+            } catch (err: any) {
+                toast.error('Sync failed', {
+                    description: err.response?.data?.message || 'Could not read the OneDrive workbook.',
+                });
+            } finally {
+                setIsSyncing(false);
+            }
+        };
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -65,141 +81,95 @@ export default function PortfolioPage() {
     }
 
     const totalInvested = summary?.totalInvested || 0;
-    const portfolioValue = summary?.portfolioValue || 0;
-    const hasValuation = portfolioValue > 0;
-
-    let roi = 0;
-    let absoluteGain = 0;
-
-    if (hasValuation && totalInvested > 0) {
-        roi = ((portfolioValue - totalInvested) / totalInvested) * 100;
-        absoluteGain = portfolioValue - totalInvested;
-    }
+    const holdings = summary?.holdings || [];
+    const lastSync = summary?.lastSync;
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                        Track your investments and returns.
+                        Track your holdings from OneDrive or update them manually.
                     </p>
+                    {lastSync?.completedAt && (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                            Last sync: {new Date(lastSync.completedAt).toLocaleString()} {lastSync.status === 'success' ? '• synced successfully' : `• ${lastSync.status}`}
+                        </p>
+                    )}
                 </div>
+                <Button onClick={handleManualSync} disabled={isSyncing} className="bg-purple-600 hover:bg-purple-700 text-white">
+                    {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                    Sync from OneDrive
+                </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium tracking-tight">Total Invested</CardTitle>
+                        <CardTitle className="text-sm font-medium tracking-tight">Total Tracked Value</CardTitle>
                         <IndianRupee className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                            {isVisible ? formatCurrency(totalInvested) : '••••••'}
+                            {formatCurrency(totalInvested)}
                         </div>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                            Principal amount invested
+                            Latest combined value across tracked assets
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-zinc-950">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium tracking-tight text-purple-700 dark:text-purple-400">Current Valuation</CardTitle>
-                        <div className="flex items-center space-x-1">
-                            <button
-                                onClick={() => setIsVisible(!isVisible)}
-                                className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md text-purple-600 dark:text-purple-400 transition-colors"
-                                title={isVisible ? "Hide Valuation" : "Show Valuation"}
-                            >
-                                {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                            <button
-                                onClick={() => setIsValuationOpen(true)}
-                                className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md text-purple-600 dark:text-purple-400 transition-colors"
-                                title="Update Valuation"
-                            >
-                                <Edit3 className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-purple-700 dark:text-purple-400">
-                            {hasValuation ? (isVisible ? formatCurrency(portfolioValue) : '••••••') : 'Not set'}
-                        </div>
-                        <p className="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">
-                            Based on manual updates
-                        </p>
-                    </CardContent>
-                </Card>
+                {TRACKED_ASSETS.map((asset) => {
+                    const holding = holdings.find((entry: any) => entry.category === asset.key);
+                    const Icon = asset.icon;
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium tracking-tight">Overall Return</CardTitle>
-                        <PieChart className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-baseline gap-2">
-                            <div className={`text-3xl font-bold ${!isVisible ? 'text-zinc-900 dark:text-zinc-100' : hasValuation && roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : hasValuation && roi < 0 ? 'text-rose-600 dark:text-rose-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
-                                {isVisible ? (hasValuation ? `${roi >= 0 ? '+' : ''}${formatCurrency(absoluteGain)}` : '₹0') : '••••••'}
-                            </div>
-                        </div>
-                        {hasValuation && (
-                            <div className={`flex items-center mt-1 text-sm font-medium ${!isVisible ? 'text-zinc-500 dark:text-zinc-400' : roi >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
-                                {isVisible && (roi >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-1" />)}
-                                {isVisible ? `${Math.abs(roi).toFixed(2)}% ROI` : '•••% ROI'}
-                            </div>
-                        )}
-                        {!hasValuation && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center">
-                                Set valuation to see returns
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
+                    return (
+                        <Card key={asset.key} className="border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium tracking-tight">{asset.label}</CardTitle>
+                                <Icon className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                                    {formatCurrency(holding?.amount || 0)}
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                    Overwritten by the next OneDrive sync
+                                </p>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3 items-start">
-                {/* Left Column: Log Values & Breakdown */}
                 <div className="lg:col-span-1 space-y-4">
                     <LogInvestedValuesForm onSuccess={fetchData} />
+                </div>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium tracking-tight">Investment Breakdown</CardTitle>
+                <div className="lg:col-span-2">
+                    <Card className="h-full">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Sync Status</CardTitle>
+                            <CardDescription>
+                                Manual updates are saved immediately, and the next Excel run overwrites the latest tracked values.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {holdings.length === 0 ? (
-                                    <p className="text-sm text-zinc-500">No investments logged yet.</p>
-                                ) : (
-                                    holdings.map((h, i) => (
-                                        <div key={i} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                                <span className="text-sm font-medium">{h.category}</span>
-                                            </div>
-                                            <span className="text-sm font-medium">{formatCurrency(h.amount)}</span>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                            {lastSync ? (
+                                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
+                                    <p><span className="font-medium text-zinc-900 dark:text-zinc-50">Status:</span> {lastSync.status}</p>
+                                    <p><span className="font-medium text-zinc-900 dark:text-zinc-50">Trigger:</span> {lastSync.trigger}</p>
+                                    <p><span className="font-medium text-zinc-900 dark:text-zinc-50">Message:</span> {lastSync.message || 'No additional details'}</p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-zinc-500">No sync has been run yet.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* Right Column: Transactions */}
-                <div className="lg:col-span-2">
-                    <RecentTransactions transactions={investments} />
-                </div>
             </div>
-
-            <UpdateValuationModal
-                isOpen={isValuationOpen}
-                onClose={() => setIsValuationOpen(false)}
-                onSuccess={fetchData}
-                currentValuation={portfolioValue}
-            />
         </div>
     );
 }

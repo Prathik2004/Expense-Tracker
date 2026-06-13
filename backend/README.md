@@ -31,6 +31,14 @@
 $ npm install
 ```
 
+## Portfolio sync
+
+To enable the daily OneDrive portfolio sync, set these environment variables in the backend process:
+
+- `PORTFOLIO_EXCEL_PATH`: full path to the synced Excel workbook on the machine running the backend.
+- `PORTFOLIO_SYNC_EMAIL` or `PORTFOLIO_SYNC_USER_ID`: optional target account for the daily cron sync when more than one user exists.
+- `PORTFOLIO_SYNC_SECRET`: optional secret for calling `POST /portfolio/sync/cron` directly.
+
 ## Compile and run the project
 
 ```bash
