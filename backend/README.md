@@ -35,7 +35,9 @@ $ npm install
 
 To enable the daily OneDrive portfolio sync, set these environment variables in the backend process:
 
-- `PORTFOLIO_EXCEL_PATH`: full path to the synced Excel workbook on the machine running the backend.
+- `PORTFOLIO_EXCEL_PATH`: OneDrive share URL or local workbook path. If it is a URL, the backend downloads the workbook through Microsoft Graph.
+- `MICROSOFT_ONEDRIVE_EXCEL_PATH`: optional Graph drive path such as `/me/drive/root:/Documents/Investment.xlsx:/content` or `/Documents/Investment.xlsx`.
+- `MICROSOFT_TENANT_ID`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`: required for OneDrive download.
 - `PORTFOLIO_SYNC_EMAIL` or `PORTFOLIO_SYNC_USER_ID`: optional target account for the daily cron sync when more than one user exists.
 - `PORTFOLIO_SYNC_SECRET`: optional secret for calling `POST /portfolio/sync/cron` directly.
 

@@ -50,7 +50,7 @@ export default function PortfolioPage() {
             setIsSyncing(true);
             try {
                 const response = await api.post('/portfolio/sync/manual');
-                toast.success('Portfolio synced from OneDrive', {
+                toast.success('Portfolio synced from Google Sheets', {
                     description: `Updated ${response.data?.holdings?.length || 0} tracked assets.`,
                 });
                 await fetchData();
@@ -90,7 +90,7 @@ export default function PortfolioPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                        Track your holdings from OneDrive or update them manually.
+                        Track your holdings from Google Sheets or update them manually.
                     </p>
                     {lastSync?.completedAt && (
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">

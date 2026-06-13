@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as XLSX from 'xlsx';
+import { readFile } from 'fs/promises';
 import { User, UserDocument } from '../schemas/user.schema';
 import { PortfolioHoldingDocument } from '../schemas/portfolio-holding.schema';
 import { PortfolioSyncLogDocument } from '../schemas/portfolio-sync-log.schema';
@@ -95,8 +96,8 @@ export class PortfolioService {
         });
 
         try {
-            const sourceFile = this.getWorkbookPath();
-            const parsedHoldings = this.parseWorkbook(sourceFile);
+            const workbookSource = await this.loadWorkbookSource();
+            const parsedHoldings = this.parseWorkbook(workbookSource.buffer);
 
             if (parsedHoldings.length === 0) {
                 throw new Error('No tracked asset values were found in the workbook');
@@ -106,11 +107,11 @@ export class PortfolioService {
             const totalValue = holdings.reduce((sum, item) => sum + item.amount, 0);
 
             syncLog.status = 'success';
-            syncLog.sourceFile = sourceFile;
+            syncLog.sourceFile = workbookSource.sourceLabel;
             syncLog.completedAt = new Date();
             syncLog.categoriesUpdated = holdings.length;
             syncLog.totalValue = totalValue;
-            syncLog.message = `Synced ${holdings.length} tracked assets from OneDrive`;
+            syncLog.message = `Synced ${holdings.length} tracked assets from Google Sheets`;
             await syncLog.save();
 
             return {
@@ -119,7 +120,7 @@ export class PortfolioService {
                 totalInvested: totalValue,
                 totalValue,
                 logId: syncLog._id,
-                sourceFile,
+                sourceFile: workbookSource.sourceLabel,
             };
         } catch (error: any) {
             syncLog.status = 'failed';
@@ -153,71 +154,125 @@ export class PortfolioService {
         return null;
     }
 
-    private getWorkbookPath(): string {
-        const workbookPath = process.env.PORTFOLIO_EXCEL_PATH || process.env.ONEDRIVE_PORTFOLIO_EXCEL_PATH;
+    private async loadWorkbookSource(): Promise<{
+    buffer: Buffer;
+    sourceLabel: string;
+}> {
+    const sheetUrl = process.env.GOOGLE_SHEET_CSV_URL;
 
-        if (!workbookPath) {
-            throw new Error('Set PORTFOLIO_EXCEL_PATH to the OneDrive workbook path');
-        }
-
-        return workbookPath;
+    if (!sheetUrl) {
+        throw new Error(
+            'GOOGLE_SHEET_CSV_URL is not configured'
+        );
     }
 
-    private parseWorkbook(filePath: string): ParsedHolding[] {
-        const workbook = XLSX.readFile(filePath, { cellDates: true });
-        const sheetName = workbook.SheetNames[5];
+    const response = await fetch(sheetUrl);
 
-        if (!sheetName) {
-            throw new Error('Expected portfolio data in sheet 6 of the workbook');
-        }
+    if (!response.ok) {
+        throw new Error(
+            `Failed to download Google Sheet: ${response.status} ${response.statusText}`
+        );
+    }
 
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][];
-        const headerRowIndex = rows.findIndex(row =>
-            row.some(cell => this.normalizeCellValue(cell).toUpperCase() === 'INVESTED') &&
-            row.some(cell => this.normalizeCellValue(cell).toUpperCase() === 'INVESTED AMOUNT')
+    const csvText = await response.text();
+
+    return {
+        buffer: Buffer.from(csvText, 'utf-8'),
+        sourceLabel: sheetUrl,
+    };
+}
+
+    private parseWorkbook(csvBuffer: Buffer): ParsedHolding[] {
+    const csv = csvBuffer.toString('utf-8');
+
+    const workbook = XLSX.read(csv, {
+        type: 'string',
+    });
+
+    const sheetName = workbook.SheetNames[0];
+
+    if (!sheetName) {
+        throw new Error('No worksheet found');
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        defval: '',
+    }) as unknown[][];
+
+    const headerRowIndex = rows.findIndex(
+        row =>
+            row.some(
+                cell =>
+                    this.normalizeCellValue(cell).toUpperCase() ===
+                    'INVESTED'
+            ) &&
+            row.some(
+                cell =>
+                    this.normalizeCellValue(cell).toUpperCase() ===
+                    'INVESTED AMOUNT'
+            )
+    );
+
+    if (headerRowIndex === -1) {
+        throw new Error(
+            'Could not find INVESTED and INVESTED AMOUNT headers'
+        );
+    }
+
+    const headerRow = rows[headerRowIndex];
+
+    const investedColumnIndex = headerRow.findIndex(
+        cell =>
+            this.normalizeCellValue(cell).toUpperCase() ===
+            'INVESTED'
+    );
+
+    const amountColumnIndex = headerRow.findIndex(
+        cell =>
+            this.normalizeCellValue(cell).toUpperCase() ===
+            'INVESTED AMOUNT'
+    );
+
+    const holdingsMap = new Map<string, number>();
+
+    for (
+        let rowIndex = headerRowIndex + 1;
+        rowIndex < rows.length;
+        rowIndex++
+    ) {
+        const row = rows[rowIndex] || [];
+
+        const rawCategory = this.normalizeCellValue(
+            row[investedColumnIndex]
         );
 
-        if (headerRowIndex === -1) {
-            throw new Error('Could not find INVESTED and INVESTED AMOUNT headers in sheet 6');
+        const rawAmount = this.normalizeCellValue(
+            row[amountColumnIndex]
+        );
+
+        const category =
+            this.normalizeCategory(rawCategory);
+
+        const amount =
+            this.parseNumericValue(rawAmount);
+
+        if (!category || amount === null) {
+            continue;
         }
 
-        const headerRow = rows[headerRowIndex];
-        const investedColumnIndex = headerRow.findIndex(cell => this.normalizeCellValue(cell).toUpperCase() === 'INVESTED');
-        const amountColumnIndex = headerRow.findIndex(cell => this.normalizeCellValue(cell).toUpperCase() === 'INVESTED AMOUNT');
-
-        if (investedColumnIndex === -1 || amountColumnIndex === -1) {
-            throw new Error('Could not locate INVESTED and INVESTED AMOUNT columns in sheet 6');
-        }
-
-        const holdingsMap = new Map<string, number>();
-
-        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex += 1) {
-            const row = rows[rowIndex] || [];
-            const rawCategory = this.normalizeCellValue(row[investedColumnIndex]);
-            const rawAmount = this.normalizeCellValue(row[amountColumnIndex]);
-
-            if (!rawCategory && !rawAmount) {
-                continue;
-            }
-
-            const category = this.normalizeCategory(rawCategory);
-            const amount = this.parseNumericValue(rawAmount);
-
-            if (!category || amount === null) {
-                continue;
-            }
-
-            holdingsMap.set(category, amount);
-        }
-
-        return TRACKED_CATEGORIES
-            .map(category => ({
-                category,
-                amount: holdingsMap.get(category) || 0,
-            }))
-            .filter(item => item.amount > 0);
+        holdingsMap.set(category, amount);
     }
+
+    return TRACKED_CATEGORIES
+        .map(category => ({
+            category,
+            amount: holdingsMap.get(category) || 0,
+        }))
+        .filter(item => item.amount > 0);
+}
 
     private normalizeCellValue(value: unknown): string {
         if (value === null || value === undefined) {
