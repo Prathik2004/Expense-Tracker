@@ -16,6 +16,10 @@ export class CreateTransactionDto {
     description?: string;
 
     @IsOptional()
+    @IsString()
+    paymentMethod?: string;
+
+    @IsOptional()
     @IsDateString()
     date?: Date;
 

@@ -21,6 +21,9 @@ export class Transaction {
     @Prop()
     description: string;
 
+    @Prop()
+    paymentMethod?: string;
+
     @Prop({ required: true, default: Date.now })
     date: Date;
 

@@ -14,6 +14,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
 import { LendingModule } from './lending/lending.module';
 import { SecurityModule } from './security/security.module';
 import { EventsModule } from './events/events.module';
+import { GoogleSheetsSyncModule } from './google-sheets-sync/google-sheets-sync.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EventsModule } from './events/events.module';
     LendingModule,
     SecurityModule,
     EventsModule,
+    GoogleSheetsSyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],
