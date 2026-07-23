@@ -37,7 +37,7 @@ export class GoogleSheetsSyncService {
   async syncDaily(): Promise<any> {
     this.logger.log('Google Sheets cron triggered');
     try {
-      const result = await this.sync();
+      const result = await this.sync('cron');
       this.logger.log(`Google Sheets cron completed: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
@@ -46,7 +46,7 @@ export class GoogleSheetsSyncService {
     }
   }
 
-  async sync(): Promise<any> {
+  async sync(trigger: 'manual' | 'cron' = 'manual'): Promise<any> {
     if (!this.spreadsheetId) {
       throw new Error('GOOGLE_SHEET_ID is not configured');
     }
@@ -57,7 +57,7 @@ export class GoogleSheetsSyncService {
     const sheetId = await this.ensureSheet(sheets, spreadsheet.data.spreadsheetId!);
 
     const [transactions, existingRows, currentMongoIds] = await Promise.all([
-      this.loadTransactions(),
+      this.loadTransactions(trigger),
       this.loadSheetRows(sheets),
       this.loadMongoIds(),
     ]);
@@ -135,7 +135,7 @@ export class GoogleSheetsSyncService {
   }
 
   async syncManual(): Promise<any> {
-    return this.sync();
+    return this.sync('manual');
   }
 
   private normalizeSpreadsheetId(value: string): string {
@@ -200,14 +200,23 @@ export class GoogleSheetsSyncService {
     return createdSheetId;
   }
 
-  private async loadTransactions(): Promise<TransactionDocument[]> {
+  private async loadTransactions(trigger: 'manual' | 'cron' = 'manual'): Promise<TransactionDocument[]> {
     const lastSyncTime = await this.getLastSyncTime();
-    const query: any = {};
-    if (lastSyncTime) {
-      query.updatedAt = { $gte: lastSyncTime };
-    }
+    const query = this.buildTransactionQuery(lastSyncTime, trigger);
 
     return this.transactionModel.find(query).sort({ date: 1 }).exec();
+  }
+
+  private buildTransactionQuery(lastSyncTime: Date | null, trigger: 'manual' | 'cron' = 'manual'): any {
+    if (trigger === 'cron') {
+      return {};
+    }
+
+    if (!lastSyncTime) {
+      return {};
+    }
+
+    return { updatedAt: { $gte: lastSyncTime } };
   }
 
   private async loadMongoIds(): Promise<string[]> {
