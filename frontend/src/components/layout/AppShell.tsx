@@ -5,31 +5,16 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
-import {
-    Loader2,
-    Moon,
-    Sun,
-    LogOut,
-    Wallet
-} from 'lucide-react';
+import { Loader2, Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 
 const CommandPalette = dynamic(() => import('./CommandPalette').then(mod => mod.CommandPalette), { ssr: false });
-const AddTransactionModal = dynamic(() => import('@/components/transactions/AddTransactionModal').then(mod => mod.AddTransactionModal), {
-    ssr: false,
-    loading: () => null
-});
+const AddTransactionModal = dynamic(() => import('@/components/transactions/AddTransactionModal').then(mod => mod.AddTransactionModal), { ssr: false });
 const Toaster = dynamic(() => import('sonner').then(mod => mod.Toaster), { ssr: false });
-const DynamicIsland = dynamic(() => import('./DynamicIsland').then(mod => mod.DynamicIsland), {
-    ssr: false,
-    loading: () => null
-});
-const PrivacyShield = dynamic(() => import('./PrivacyShield').then(mod => mod.PrivacyShield), {
-    ssr: false,
-    loading: () => null
-});
+const DynamicIsland = dynamic(() => import('./DynamicIsland').then(mod => mod.DynamicIsland), { ssr: false });
+const PrivacyShield = dynamic(() => import('./PrivacyShield').then(mod => mod.PrivacyShield), { ssr: false });
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { user, isLoading, checkAuth, logout } = useAuthStore();
@@ -45,11 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setIsMounted(true);
         checkAuth();
-
-        // Defer global components like DynamicIsland and CommandPalette even more on mobile
-        const timer = setTimeout(() => {
-            setIsGlobalDeferred(true);
-        }, 1500);
+        const timer = setTimeout(() => setIsGlobalDeferred(true), 1500);
         return () => clearTimeout(timer);
     }, [checkAuth]);
 
@@ -61,72 +42,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
     }, [user, isLoading, router, pathname, isMounted]);
 
-    // WebSocket real-time sync setup
     useEffect(() => {
         if (user && user._id) {
             let socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-            // If it doesn't start with http, and it's not localhost, prepend https://
             if (!socketUrl.startsWith('http') && !socketUrl.includes('localhost')) {
                 socketUrl = `https://${socketUrl}`;
             }
-
-            // Strip any trailing /api to ensure socket connects to root namespace
             socketUrl = socketUrl.replace(/\/api\/?$/, '');
 
             const setupSocket = async () => {
                 const { io } = await import('socket.io-client');
-                const socket = io(socketUrl, {
-                    transports: ['websocket', 'polling']
-                });
-
-                socket.on('connect', () => {
-                    socket.emit('join_room', user._id);
-                });
-
-                const handleSync = () => {
-                    window.dispatchEvent(new CustomEvent('sync_transactions'));
-                };
-
+                const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+                socket.on('connect', () => socket.emit('join_room', user._id));
+                const handleSync = () => window.dispatchEvent(new CustomEvent('sync_transactions'));
                 socket.on('transaction_added', handleSync);
                 socket.on('transaction_updated', handleSync);
                 socket.on('transaction_deleted', handleSync);
                 socket.on('transactions_bulk_added', handleSync);
-
                 return socket;
             };
-
             const socketPromise = setupSocket();
-
-            return () => {
-                socketPromise.then(socket => socket.disconnect());
-            };
+            return () => { socketPromise.then(s => s.disconnect()); };
         }
     }, [user]);
 
-    // Listener for Smart Actions from Cmd+K
     useEffect(() => {
-        const handleOpenSmartAdd = (e: any) => {
-            setSmartTransactionData(e.detail);
-            setIsAddModalOpen(true);
-        };
-        window.addEventListener('open_smart_add_transaction', handleOpenSmartAdd);
-        return () => window.removeEventListener('open_smart_add_transaction', handleOpenSmartAdd);
+        const handler = (e: any) => { setSmartTransactionData(e.detail); setIsAddModalOpen(true); };
+        window.addEventListener('open_smart_add_transaction', handler);
+        return () => window.removeEventListener('open_smart_add_transaction', handler);
     }, []);
 
     if (!isMounted || isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                        <span className="text-primary-foreground text-sm font-bold">E</span>
+                    </div>
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
             </div>
         );
     }
 
-    if (!user) {
-        return null; // Will redirect in useEffect
-    }
+    if (!user) return null;
 
     return (
-        <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+        <div className="flex min-h-screen bg-background text-foreground">
             <Sidebar />
             {isGlobalDeferred && <CommandPalette />}
             {isGlobalDeferred && <DynamicIsland />}
@@ -134,27 +96,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <main className="flex-1 w-full pb-20 md:pb-0 overflow-x-hidden">
                 {/* Mobile Header */}
-                <header className="flex md:!hidden items-center justify-between p-4 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
-                    <div className="flex items-center space-x-2">
-                        <Wallet className="w-5 h-5 text-primary" strokeWidth={2.5} />
-                        <span className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400">Expensify</span>
+                <header className="flex md:!hidden items-center justify-between px-4 h-14 bg-card/80 dark:bg-card/80 backdrop-blur-sm border-b border-border sticky top-0 z-40">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
+                            <span className="text-primary-foreground text-[10px] font-bold">E</span>
+                        </div>
+                        <span className="text-sm font-semibold tracking-tight text-foreground">Expensify</span>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-1">
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-9 h-9 text-zinc-500"
+                            variant="ghost" size="icon"
+                            className="w-9 h-9 text-muted-foreground hover:text-foreground"
                             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                         >
-                            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </Button>
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-9 h-9 text-zinc-500 hover:text-destructive"
+                            variant="ghost" size="icon"
+                            className="w-9 h-9 text-muted-foreground hover:text-destructive hover:bg-muted"
                             onClick={logout}
                         >
-                            <LogOut className="w-5 h-5" />
+                            <LogOut className="w-4 h-4" />
                         </Button>
                     </div>
                 </header>
@@ -167,11 +129,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <BottomNav />
             <AddTransactionModal
                 isOpen={isAddModalOpen}
-                onClose={() => {
-                    setIsAddModalOpen(false);
-                    setSmartTransactionData(null);
-                }}
-                onSuccess={() => { }}
+                onClose={() => { setIsAddModalOpen(false); setSmartTransactionData(null); }}
+                onSuccess={() => {}}
                 transaction={smartTransactionData}
             />
             <Toaster richColors position="bottom-right" />

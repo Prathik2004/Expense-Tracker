@@ -6,6 +6,9 @@ import { readFile } from 'fs/promises';
 import { User, UserDocument } from '../schemas/user.schema';
 import { PortfolioHoldingDocument } from '../schemas/portfolio-holding.schema';
 import { PortfolioSyncLogDocument } from '../schemas/portfolio-sync-log.schema';
+import { InvestmentDocument } from '../schemas/investment.schema';
+import { IndmoneyConnectionDocument } from '../schemas/indmoney-connection.schema';
+import { CurrencyConversionService } from '../services/currency-conversion.service';
 import { CreatePortfolioEntryDto } from './dto/create-portfolio-entry.dto';
 
 const TRACKED_CATEGORIES = [
@@ -30,7 +33,10 @@ export class PortfolioService {
     constructor(
         @InjectModel('PortfolioHolding') private portfolioHoldingModel: Model<PortfolioHoldingDocument>,
         @InjectModel('PortfolioSyncLog') private portfolioSyncLogModel: Model<PortfolioSyncLogDocument>,
-        @InjectModel(User.name) private userModel: Model<UserDocument>
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
+        @InjectModel('Investment') private investmentModel: Model<InvestmentDocument>,
+        @InjectModel('IndmoneyConnection') private indConnModel: Model<IndmoneyConnectionDocument>,
+        private currencyService: CurrencyConversionService,
     ) { }
 
     async createBulk(userId: string, dtos: CreatePortfolioEntryDto[]): Promise<any> {
@@ -45,23 +51,65 @@ export class PortfolioService {
     }
 
     async getPortfolio(userId: string): Promise<any> {
+        // Existing simple holdings
         const holdings = await this.getCurrentHoldings(userId);
-        const totalTrackedValue = holdings.reduce((sum, item) => sum + item.amount, 0);
+
+        // Investments from external providers (e.g., INDmoney)
+        const investments = await this.investmentModel.find({ userId: new Types.ObjectId(userId) }).lean();
+
+        // Determine conversion rates for currencies present
+        const currencies = Array.from(new Set(investments.map((i: any) => i.currency || 'INR')));
+        const rates: Record<string, number> = {};
+        for (const cur of currencies) {
+            if (cur === 'INR') { rates[cur] = 1; continue; }
+            rates[cur] = await this.currencyService.getRate(cur, 'INR');
+        }
+
+        let investedSum = 0;
+        let currentValueSum = 0;
+
+        const normalizedInvestments = investments.map((inv: any) => {
+            const rate = rates[inv.currency || 'INR'] || 1;
+            const invested = Number(inv.investedAmount || 0) * rate;
+            const current = Number(inv.currentValue || 0) * rate;
+            investedSum += invested;
+            currentValueSum += current;
+            return {
+                ...inv,
+                convertedCurrency: 'INR',
+                convertedInvestedAmount: invested,
+                convertedCurrentValue: current,
+                exchangeRate: rate,
+            };
+        });
+
+        const totalTrackedValue = holdings.reduce((sum, item) => sum + item.amount, 0) + currentValueSum;
+
+        // Get INDmoney connection last sync if exists
+        const indConn = await this.indConnModel.findOne({ userId: new Types.ObjectId(userId), provider: 'indmoney' }).lean();
+
         const lastSync = await this.portfolioSyncLogModel
             .findOne({ userId: new Types.ObjectId(userId) })
             .sort({ createdAt: -1 })
             .lean();
 
         return {
-            totalInvested: totalTrackedValue,
+            totalInvested: investedSum + holdings.reduce((s, h) => s + h.amount, 0),
             portfolioValue: totalTrackedValue,
             holdings,
+            investments: normalizedInvestments,
             lastSync: lastSync ? {
                 trigger: lastSync.trigger,
                 status: lastSync.status,
                 message: lastSync.message,
                 completedAt: lastSync.completedAt,
                 sourceFile: lastSync.sourceFile,
+            } : null,
+            indmoney: indConn ? {
+                status: indConn.status,
+                connectedAt: indConn.connectedAt,
+                lastSyncedAt: indConn.lastSyncedAt,
+                lastSyncStatus: indConn.lastSyncStatus,
             } : null,
         };
     }

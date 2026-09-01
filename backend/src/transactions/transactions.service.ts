@@ -139,24 +139,50 @@ export class TransactionsService {
     this.eventsGateway.emitToUser(userId, 'transaction_deleted', { id });
   }
 
+  private getCategoryTotalBreakdown(rows: any[], allowedCategories: string[], fallbackNames: string[] = []) {
+    const normalizedAllowed = allowedCategories.map(value => value.toLowerCase());
+    const normalizedFallback = fallbackNames.map(value => value.toLowerCase());
+
+    return rows
+      .filter((row) => {
+        const category = String(row?._id || '').trim();
+        const normalized = category.toLowerCase();
+        return normalizedAllowed.includes(normalized) || normalizedFallback.includes(normalized);
+      })
+      .reduce((sum, row) => sum + (Number(row.total) || 0), 0);
+  }
+
   async getSummary(userId: string, month: number, year: number): Promise<any> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const summary = await this.transactionModel.aggregate([
-      { $match: { userId: new Types.ObjectId(userId), date: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: '$type', total: { $sum: '$amount' } } }
+    const [summary, incomeBreakdown, investmentBreakdown, categoryBreakdown] = await Promise.all([
+      this.transactionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$type', total: { $sum: '$amount' } } }
+      ]),
+      this.transactionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), type: 'income', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$category', total: { $sum: '$amount' } } }
+      ]),
+      this.transactionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), type: 'investment', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$category', total: { $sum: '$amount' } } }
+      ]),
+      this.transactionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), type: 'expense', date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$category', total: { $sum: '$amount' } } },
+        { $sort: { total: -1 } }
+      ])
     ]);
 
     const income = summary.find(s => s._id === 'income')?.total || 0;
     const expense = summary.find(s => s._id === 'expense')?.total || 0;
     const investment = summary.find(s => s._id === 'investment')?.total || 0;
 
-    const categoryBreakdown = await this.transactionModel.aggregate([
-      { $match: { userId: new Types.ObjectId(userId), type: 'expense', date: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: '$category', total: { $sum: '$amount' } } },
-      { $sort: { total: -1 } }
-    ]);
+    const mainIncome = this.getCategoryTotalBreakdown(incomeBreakdown, ['salary', 'main income', 'primary salary'], ['monthly salary']);
+    const sideIncome = this.getCategoryTotalBreakdown(incomeBreakdown, ['freelance', 'consulting', 'side income', 'business', 'rental income', 'part time', 'gig'], ['side hustle']);
+    const sip = this.getCategoryTotalBreakdown(investmentBreakdown, ['sip', 'mutual funds sip', 'monthly sip', 'recurring sip', 'sip investment'], ['sips']);
 
     const transactions = await this.transactionModel.find({
       userId: new Types.ObjectId(userId),
@@ -167,8 +193,11 @@ export class TransactionsService {
 
     return {
       income,
+      mainIncome,
+      sideIncome,
       expense,
       investment,
+      sip,
       portfolioValue: user?.portfolioValue || 0,
       balance: income - expense - investment,
       categoryBreakdown,

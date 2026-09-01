@@ -36,8 +36,8 @@ interface AddTxProps {
 
 const CATEGORIES: Record<string, string[]> = {
     expense: ["Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping", "Other"],
-    income: ["Salary", "Freelance", "Gift", "Refund", "Other"],
-    investment: ["Indian Stocks", "US Stocks", "Mutual Funds", "Gold", "Silver", "Bonds", "Crypto", "Other"]
+    income: ["Salary", "Main Income", "Side Income", "Freelance", "Rental Income", "Bonus", "Gift", "Refund", "Other"],
+    investment: ["SIP", "Mutual Funds", "Indian Stocks", "US Stocks", "Gold", "Silver", "Bonds", "Crypto", "Other"]
 };
 
 export function AddTransactionModal({ isOpen, onClose, onSuccess, transaction }: AddTxProps) {

@@ -7,9 +7,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet } from 'lucide-react';
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
+import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
     const [name, setName] = useState('');
@@ -17,6 +16,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const register = useAuthStore((state) => state.register);
     const router = useRouter();
@@ -25,49 +25,64 @@ export default function RegisterPage() {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-
         try {
             await register({ name, email, password });
             router.push('/');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to register. Email may be taken.');
+            setError(err.response?.data?.message || 'Failed to register. Email may already be in use.');
         } finally {
             setIsLoading(false);
         }
     };
 
+    const perks = [
+        "Track income, expenses & investments",
+        "Visual spending analytics",
+        "Budgets and savings goals",
+        "Real-time sync across devices",
+    ];
+
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-primary/10 p-3 rounded-full">
-                            <Wallet className="w-8 h-8 text-primary" />
-                        </div>
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="w-full max-w-sm animate-fade-in-up">
+                {/* Logo */}
+                <div className="flex items-center justify-center gap-2 mb-8">
+                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span className="text-primary-foreground text-sm font-bold">E</span>
                     </div>
-                    <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-                    <CardDescription>Enter your details below to get started</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-4">
-                        {error && (
-                            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-                                {error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
+                    <span className="text-lg font-semibold tracking-tight text-foreground">Expensify</span>
+                </div>
+
+                {/* Card */}
+                <div className="card-base p-6">
+                    <div className="mb-5">
+                        <h1 className="text-xl font-semibold text-foreground">Create account</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Start managing your finances</p>
+                    </div>
+
+                    <GoogleLoginButton />
+
+                    <div className="flex items-center gap-2 my-4">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground">or continue with email</span>
+                        <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        <div className="space-y-1">
+                            <Label htmlFor="name" className="text-xs font-medium text-foreground">Full Name</Label>
                             <Input
                                 id="name"
                                 type="text"
-                                placeholder="John Doe"
+                                placeholder="Rahul Sharma"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
+                                className="h-9 rounded-lg"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                        <div className="space-y-1">
+                            <Label htmlFor="email" className="text-xs font-medium text-foreground">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -75,45 +90,64 @@ export default function RegisterPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                className="h-9 rounded-lg"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                minLength={6}
-                            />
+                        <div className="space-y-1">
+                            <Label htmlFor="password" className="text-xs font-medium text-foreground">Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="Min. 6 characters"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    minLength={6}
+                                    className="h-9 pr-9 rounded-lg"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col space-y-4">
-                        <Button className="w-full" type="submit" disabled={isLoading}>
+
+                        {error && (
+                            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive">
+                                {error}
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full h-9 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 border-0"
+                        >
+                            {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
                             {isLoading ? 'Creating account...' : 'Create account'}
                         </Button>
+                    </form>
 
-                        <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                    {/* Perks */}
+                    <div className="mt-4 space-y-1.5">
+                        {perks.map((perk) => (
+                            <div key={perk} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                                {perk}
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white dark:bg-zinc-950 px-2 text-zinc-500">Or continue with</span>
-                            </div>
-                        </div>
+                        ))}
+                    </div>
 
-                        <GoogleLoginButton />
-
-                        <div className="text-sm text-center text-zinc-500 pt-2">
-                            Already have an account?{' '}
-                            <Link href="/login" className="text-primary hover:underline">
-                                Sign in
-                            </Link>
-                        </div>
-                    </CardFooter>
-                </form>
-            </Card>
+                    <p className="mt-4 text-center text-xs text-muted-foreground">
+                        Already have an account?{' '}
+                        <Link href="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

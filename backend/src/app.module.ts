@@ -15,6 +15,7 @@ import { LendingModule } from './lending/lending.module';
 import { SecurityModule } from './security/security.module';
 import { EventsModule } from './events/events.module';
 import { GoogleSheetsSyncModule } from './google-sheets-sync/google-sheets-sync.module';
+import { IndmoneyModule } from './integrations/indmoney/indmoney.module';
 
 @Module({
   imports: [
@@ -38,6 +39,8 @@ import { GoogleSheetsSyncModule } from './google-sheets-sync/google-sheets-sync.
     SecurityModule,
     EventsModule,
     GoogleSheetsSyncModule,
+    // INDmoney integration module
+    IndmoneyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
