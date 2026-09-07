@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { MobileSnapshotCapture } from '@/components/portfolio/MobileSnapshotCapture';
 
 export default function IntegrationsPage() {
     const [status, setStatus] = useState<any>(null);
@@ -59,6 +60,12 @@ export default function IntegrationsPage() {
 
     const handleConnect = async () => {
         setProcessing(true);
+        const androidBridge = (window as Window & { ExpenseTrackerAndroid?: { openIndmoney: () => void } }).ExpenseTrackerAndroid;
+        if (androidBridge) {
+            androidBridge.openIndmoney();
+            setProcessing(false);
+            return;
+        }
         const indmoneyWindow = window.open('https://www.indmoney.com/dashboard', 'indmoney-portfolio');
         try {
             const resp = await api.get('/integrations/indmoney/connect');
@@ -174,6 +181,7 @@ export default function IntegrationsPage() {
                     )}
                 </CardContent>
             </Card>
+            <MobileSnapshotCapture onSuccess={fetchStatus} />
         </div>
     );
 }

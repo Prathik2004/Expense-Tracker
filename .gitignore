@@ -12,6 +12,7 @@ build/
 .indmoney-browser-profile/
 **/tmp/indmoney/
 !indmoney-extension/
+android/.gradle/
 next-env.d.ts
 .vercel
 
