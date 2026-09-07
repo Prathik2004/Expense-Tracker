@@ -12,6 +12,9 @@ export class Transaction {
     @Prop({ required: true, enum: ['income', 'expense', 'investment'] })
     type: string;
 
+    @Prop({ enum: ['buy', 'sell', 'dividend', 'fee', 'transfer', 'other'] })
+    investmentAction?: string;
+
     @Prop({ required: true, min: 0 })
     amount: number;
 
@@ -32,6 +35,27 @@ export class Transaction {
 
     @Prop()
     recurringDay?: number;
+
+    @Prop()
+    symbol?: string;
+
+    @Prop()
+    isin?: string;
+
+    @Prop({ min: 0 })
+    quantity?: number;
+
+    @Prop({ min: 0 })
+    price?: number;
+
+    @Prop({ min: 0, default: 0 })
+    fees?: number;
+
+    @Prop({ enum: ['manual', 'indmoney', 'csv', 'other'], default: 'manual' })
+    source?: string;
+
+    @Prop()
+    externalId?: string;
 
 }
 

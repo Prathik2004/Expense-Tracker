@@ -26,6 +26,9 @@ What is implemented
 - `Investment` schema for normalized holdings with a unique compound index to avoid duplicates.
 - PKCE + state management (in-memory) and example authorization URL generation.
 - Manual sync endpoint that fetches from MCP and upserts normalized investments.
+- Snapshot capture for every successful INDmoney sync, including allocation by asset type.
+- Sync-in-progress protection to avoid overlapping provider requests.
+- Portfolio UI showing individual holdings, invested value, current value, gain/loss, and last sync status.
 - Basic encryption util for token-at-rest encryption.
 
 Limitations / Next steps
@@ -34,6 +37,13 @@ Limitations / Next steps
 - State/PKCE store is currently in-memory — for production persist to DB or cache.
 - Token revocation flow is not implemented because INDmoney revocation endpoint is not documented here.
 - Add unit tests for auth, normalization, and deduplication (placeholders included in codebase).
+
+Portfolio tracking model
+------------------------
+- `Transaction` records are the immutable investment event ledger. Investment events may include `buy`, `sell`, `dividend`, `fee`, `transfer`, or `other`, plus symbol, quantity, price, fees, and source metadata.
+- `Investment` records represent the latest normalized holding state from a provider.
+- `PortfolioSnapshot` records the value and allocation at a point in time. The portfolio history endpoint is `GET /portfolio/history`.
+- Manual category values remain supported as snapshots for assets without a provider. They should not be treated as individual buy transactions.
 
 Files added
 -----------

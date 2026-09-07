@@ -9,6 +9,9 @@ build/
 .DS_Store
 *.pem
 *.tsbuildinfo
+.indmoney-browser-profile/
+**/tmp/indmoney/
+!indmoney-extension/
 next-env.d.ts
 .vercel
 

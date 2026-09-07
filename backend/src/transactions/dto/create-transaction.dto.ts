@@ -30,4 +30,39 @@ export class CreateTransactionDto {
     @IsOptional()
     @IsNumber()
     recurringDay?: number;
+
+    @IsOptional()
+    @IsEnum(['buy', 'sell', 'dividend', 'fee', 'transfer', 'other'])
+    investmentAction?: string;
+
+    @IsOptional()
+    @IsString()
+    symbol?: string;
+
+    @IsOptional()
+    @IsString()
+    isin?: string;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    quantity?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    price?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    fees?: number;
+
+    @IsOptional()
+    @IsEnum(['manual', 'indmoney', 'csv', 'other'])
+    source?: string;
+
+    @IsOptional()
+    @IsString()
+    externalId?: string;
 }

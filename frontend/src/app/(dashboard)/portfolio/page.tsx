@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Loader2, IndianRupee, RefreshCcw, TrendingUp, Landmark, Globe, Gem, Coins } from "lucide-react";
+import { Loader2, IndianRupee, RefreshCcw, TrendingUp, Landmark, Globe, Gem, Coins, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { LogInvestedValuesForm } from "@/components/portfolio/LogInvestedValuesForm";
+import { LogInvestmentForm } from "@/components/portfolio/LogInvestmentForm";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const TRACKED_ASSETS = [
     { key: "Indian Stocks", label: "Indian Stocks", icon: Landmark },
     { key: "US Stocks", label: "US Stocks", icon: Globe },
     { key: "Mutual Funds", label: "Mutual Funds", icon: TrendingUp },
+    { key: "Liquid Fund", label: "Liquid Fund", icon: Wallet },
     { key: "Gold", label: "Gold", icon: Gem },
     { key: "Silver", label: "Silver", icon: Coins },
 ];
@@ -81,7 +84,15 @@ export default function PortfolioPage() {
     }
 
     const totalInvested = summary?.totalInvested || 0;
+    const currentValue = summary?.currentValue ?? summary?.portfolioValue ?? 0;
+    const gainLoss = summary?.gainLoss || 0;
+    const gainLossPercentage = summary?.gainLossPercentage || 0;
     const holdings = summary?.holdings || [];
+    const investments = summary?.investments || [];
+    const snapshots = [...(summary?.snapshots || [])].reverse().map((snapshot: any) => ({
+        date: new Date(snapshot.capturedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        value: Number(snapshot.currentValue) || 0,
+    }));
     const lastSync = summary?.lastSync;
 
     return (
@@ -112,11 +123,27 @@ export default function PortfolioPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                            {formatCurrency(totalInvested)}
+                            {formatCurrency(currentValue)}
                         </div>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Latest combined value across tracked assets
                         </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Invested</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{formatCurrency(totalInvested)}</div>
+                        <p className="mt-1 text-xs text-zinc-500">Capital contributed across tracked sources</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Overall Gain / Loss</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className={`text-3xl font-bold ${gainLoss >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatCurrency(gainLoss)}</div>
+                        <p className="mt-1 text-xs text-zinc-500">{gainLossPercentage.toFixed(2)}% since tracking began</p>
                     </CardContent>
                 </Card>
 
@@ -135,7 +162,7 @@ export default function PortfolioPage() {
                                     {formatCurrency(holding?.amount || 0)}
                                 </div>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                    Overwritten by the next OneDrive sync
+                                    {holding?.source === 'excel' ? 'Synced from workbook' : 'Manual snapshot'}
                                 </p>
                             </CardContent>
                         </Card>
@@ -143,8 +170,57 @@ export default function PortfolioPage() {
                 })}
             </div>
 
+            {snapshots.length > 1 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Portfolio History</CardTitle>
+                        <CardDescription>Recorded value snapshots from manual and connected sources.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={snapshots}>
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                                <YAxis hide domain={['auto', 'auto']} />
+                                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            )}
+
+            {investments.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Connected Holdings</CardTitle>
+                        <CardDescription>Individual holdings imported from INDmoney. Values use the last successful sync.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="border-b text-left text-xs uppercase text-zinc-500">
+                                    <tr><th className="py-2">Holding</th><th>Quantity</th><th>Invested</th><th>Current value</th><th>Gain / loss</th></tr>
+                                </thead>
+                                <tbody>
+                                    {investments.map((investment: any) => {
+                                        const invested = Number(investment.convertedInvestedAmount ?? investment.investedAmount) || 0;
+                                        const value = Number(investment.convertedCurrentValue ?? investment.currentValue) || 0;
+                                        return <tr key={investment._id || investment.externalId} className="border-b last:border-0">
+                                            <td className="py-3"><div className="font-medium">{investment.name}</div><div className="text-xs text-zinc-500">{investment.symbol || investment.isin || investment.assetType || 'Investment'}</div></td>
+                                            <td>{investment.quantity ?? '-'}</td><td>{formatCurrency(invested)}</td><td>{formatCurrency(value)}</td>
+                                            <td className={value - invested >= 0 ? 'text-emerald-600' : 'text-red-600'}>{formatCurrency(value - invested)}</td>
+                                        </tr>;
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-3 items-start">
                 <div className="lg:col-span-1 space-y-4">
+                    <LogInvestmentForm onSuccess={fetchData} />
                     <LogInvestedValuesForm onSuccess={fetchData} />
                 </div>
 
@@ -153,7 +229,7 @@ export default function PortfolioPage() {
                         <CardHeader>
                             <CardTitle className="text-lg">Sync Status</CardTitle>
                             <CardDescription>
-                                Manual updates are saved immediately, and the next Excel run overwrites the latest tracked values.
+                                Manual investment events are kept as a ledger. Portfolio value snapshots are separate and show where each value came from.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

@@ -23,6 +23,7 @@ const INVESTMENT_CATEGORIES = [
     "Indian Stocks",
     "US Stocks",
     "Mutual Funds",
+    "Liquid Fund",
     "Gold",
     "Silver",
     "Bonds",
@@ -30,11 +31,24 @@ const INVESTMENT_CATEGORIES = [
     "Other"
 ];
 
+const INVESTMENT_ACTIONS = [
+    { value: "buy", label: "Buy / SIP" },
+    { value: "sell", label: "Sell" },
+    { value: "dividend", label: "Dividend" },
+    { value: "fee", label: "Fee" },
+    { value: "transfer", label: "Transfer" },
+    { value: "other", label: "Other" },
+];
+
 export function LogInvestmentForm({ onSuccess }: LogInvestmentFormProps) {
     const [amount, setAmount] = useState("");
     const [category, setCategory] = useState("");
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState("");
+    const [investmentAction, setInvestmentAction] = useState("buy");
+    const [symbol, setSymbol] = useState("");
+    const [quantity, setQuantity] = useState("");
+    const [price, setPrice] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -54,16 +68,28 @@ export function LogInvestmentForm({ onSuccess }: LogInvestmentFormProps) {
                 amount: parseFloat(amount),
                 category,
                 description,
-                date: new Date(date).toISOString()
+                date: new Date(date).toISOString(),
+                investmentAction,
+                symbol: symbol || undefined,
+                quantity: quantity ? parseFloat(quantity) : undefined,
+                price: price ? parseFloat(price) : undefined,
+                source: "manual",
             });
 
             // Reset form on success
             setAmount("");
             setCategory("");
             setDescription("");
+            setInvestmentAction("buy");
+            setSymbol("");
+            setQuantity("");
+            setPrice("");
             onSuccess();
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to log investment");
+        } catch (err: unknown) {
+            const message = err && typeof err === "object" && "response" in err
+                ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            setError(message || "Failed to log investment");
         } finally {
             setIsLoading(false);
         }
@@ -124,6 +150,33 @@ export function LogInvestmentForm({ onSuccess }: LogInvestmentFormProps) {
                                 onChange={(e) => setDate(e.target.value)}
                                 required
                             />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="inv-action">Action</Label>
+                            <Select value={investmentAction} onValueChange={(value) => value && setInvestmentAction(value)}>
+                                <SelectTrigger id="inv-action"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {INVESTMENT_ACTIONS.map(action => <SelectItem key={action.value} value={action.value}>{action.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="inv-symbol">Symbol / ISIN</Label>
+                            <Input id="inv-symbol" placeholder="e.g. INFY" value={symbol} onChange={(e) => setSymbol(e.target.value)} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="inv-quantity">Quantity</Label>
+                            <Input id="inv-quantity" type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="inv-price">Price per unit</Label>
+                            <Input id="inv-price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
                         </div>
                     </div>
 

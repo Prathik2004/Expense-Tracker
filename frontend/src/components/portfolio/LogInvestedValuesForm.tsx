@@ -16,6 +16,7 @@ const ASSET_CLASSES = [
     { id: "indian_stocks", label: "Indian Stocks", category: "Indian Stocks" },
     { id: "us_stocks", label: "US Stocks", category: "US Stocks" },
     { id: "mutual_funds", label: "Mutual Funds", category: "Mutual Funds" },
+    { id: "liquid_fund", label: "Liquid Fund", category: "Liquid Fund" },
     { id: "gold", label: "Gold", category: "Gold" },
     { id: "silver", label: "Silver", category: "Silver" },
 ];
@@ -66,9 +67,12 @@ export function LogInvestedValuesForm({ onSuccess }: LogInvestedValuesFormProps)
             // Clear form
             setValues({});
             onSuccess();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.response?.data?.message || "Failed to log investments");
+            const message = err && typeof err === "object" && "response" in err
+                ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            setError(message || "Failed to log investments");
         } finally {
             setIsLoading(false);
         }
@@ -79,7 +83,7 @@ export function LogInvestedValuesForm({ onSuccess }: LogInvestedValuesFormProps)
             <CardHeader className="pb-4">
                     <CardTitle className="text-lg">Log Portfolio Values</CardTitle>
                 <CardDescription>
-                    Manually update the tracked asset values. The next Excel sync will overwrite them.
+                    Record a current-value snapshot for assets that are not connected to a provider.
                 </CardDescription>
             </CardHeader>
             <CardContent>

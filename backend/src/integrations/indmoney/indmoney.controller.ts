@@ -14,6 +14,12 @@ export class IndmoneyController {
     return { url: resp.url };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('browser-export/start')
+  startBrowserExport() {
+    return this.svc.startLocalBrowserExport();
+  }
+
   // This callback is intended to be called by INDmoney redirecting to the backend
   @Get('callback')
   async callback(@Req() req: any, @Res() res: any) {
@@ -46,6 +52,12 @@ export class IndmoneyController {
   async sync(@Req() req: any) {
     const userId = req.user && req.user._id ? req.user._id.toString() : req.user?.id || null;
     return this.svc.manualSync(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('browser-export/import')
+  importBrowserExport(@Req() req: any, @Body() payload: any) {
+    return this.svc.importBrowserExport(req.user.userId, payload);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -9,12 +9,14 @@ import { IndmoneySyncService } from './indmoney-sync.service';
 import { IndmoneyConnectionSchema } from '../../schemas/indmoney-connection.schema';
 import { InvestmentSchema } from '../../schemas/investment.schema';
 import { IndmoneyStateSchema } from '../../schemas/indmoney-state.schema';
+import { PortfolioSnapshotSchema } from '../../schemas/portfolio-snapshot.schema';
 
 @Module({
   imports: [MongooseModule.forFeature([
     { name: 'IndmoneyConnection', schema: IndmoneyConnectionSchema },
     { name: 'Investment', schema: InvestmentSchema },
     { name: 'IndmoneyState', schema: IndmoneyStateSchema },
+    { name: 'PortfolioSnapshot', schema: PortfolioSnapshotSchema },
   ])],
   controllers: [IndmoneyController],
   providers: [IndmoneyService, IndmoneyAuthService, IndmoneyClientService, IndmoneyNormalizerService, IndmoneySyncService],

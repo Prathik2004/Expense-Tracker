@@ -9,20 +9,26 @@ export class IndmoneyNormalizerService {
     if (!raw) return [];
 
     // If MCP returns an array under `holdings` try to map it.
-    const list = Array.isArray(raw.holdings) ? raw.holdings : raw.items || [];
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw.holdings) ? raw.holdings : Array.isArray(raw.items) ? raw.items : [];
 
-    return list.map((h: any) => ({
+    return list.filter((h: any) => h && typeof h === 'object').map((h: any) => ({
       externalId: String(h.id || h.instrumentId || `${h.symbol || h.name}`),
-      name: h.name || h.displayName || h.schemeName,
+      name: h.name || h.displayName || h.schemeName || h.symbol || 'Unnamed investment',
       assetType: h.type || h.assetType,
       symbol: h.symbol,
       isin: h.isin,
-      quantity: h.quantity ? Number(h.quantity) : undefined,
-      averagePrice: h.avgPrice ? Number(h.avgPrice) : undefined,
-      currentPrice: h.currentPrice ? Number(h.currentPrice) : undefined,
-      investedAmount: h.investedAmount ? Number(h.investedAmount) : undefined,
-      currentValue: h.currentValue ? Number(h.currentValue) : undefined,
+      quantity: this.toNumber(h.quantity),
+      averagePrice: this.toNumber(h.avgPrice ?? h.averagePrice),
+      currentPrice: this.toNumber(h.currentPrice ?? h.ltp),
+      investedAmount: this.toNumber(h.investedAmount ?? h.investedValue),
+      currentValue: this.toNumber(h.currentValue ?? h.marketValue ?? h.value),
       currency: h.currency || 'INR',
     }));
+  }
+
+  private toNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 }

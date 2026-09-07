@@ -8,6 +8,7 @@ import { PortfolioHoldingDocument } from '../schemas/portfolio-holding.schema';
 import { PortfolioSyncLogDocument } from '../schemas/portfolio-sync-log.schema';
 import { InvestmentDocument } from '../schemas/investment.schema';
 import { IndmoneyConnectionDocument } from '../schemas/indmoney-connection.schema';
+import { PortfolioSnapshotDocument } from '../schemas/portfolio-snapshot.schema';
 import { CurrencyConversionService } from '../services/currency-conversion.service';
 import { CreatePortfolioEntryDto } from './dto/create-portfolio-entry.dto';
 
@@ -15,6 +16,7 @@ const TRACKED_CATEGORIES = [
     'Indian Stocks',
     'US Stocks',
     'Mutual Funds',
+    'Liquid Fund',
     'Gold',
     'Silver',
 ];
@@ -36,6 +38,7 @@ export class PortfolioService {
         @InjectModel(User.name) private userModel: Model<UserDocument>,
         @InjectModel('Investment') private investmentModel: Model<InvestmentDocument>,
         @InjectModel('IndmoneyConnection') private indConnModel: Model<IndmoneyConnectionDocument>,
+        @InjectModel('PortfolioSnapshot') private portfolioSnapshotModel: Model<PortfolioSnapshotDocument>,
         private currencyService: CurrencyConversionService,
     ) { }
 
@@ -47,7 +50,9 @@ export class PortfolioService {
             date: dto.date ? new Date(dto.date) : new Date(),
         }));
 
-        return this.upsertHoldings(userId, holdings, 'manual');
+        const result = await this.upsertHoldings(userId, holdings, 'manual');
+        await this.recordSnapshot(userId, result, 'manual');
+        return result;
     }
 
     async getPortfolio(userId: string): Promise<any> {
@@ -83,7 +88,46 @@ export class PortfolioService {
             };
         });
 
-        const totalTrackedValue = holdings.reduce((sum, item) => sum + item.amount, 0) + currentValueSum;
+        const aggregateLiquidFund = normalizedInvestments.find((investment: any) => this.isAggregateInvestment(investment, 'Liquid Fund'));
+        const aggregateMutualFunds = normalizedInvestments.find((investment: any) => this.isAggregateInvestment(investment, 'Mutual Funds'));
+        const aggregateGold = normalizedInvestments.find((investment: any) => this.isAggregateInvestment(investment, 'Gold'));
+        const aggregateSilver = normalizedInvestments.find((investment: any) => this.isAggregateInvestment(investment, 'Silver'));
+        const aggregateIndianStocks = normalizedInvestments.find((investment: any) => this.isAggregateInvestment(investment, 'Indian Stocks'));
+        if (aggregateLiquidFund && aggregateMutualFunds) {
+            const liquidCurrentValue = Number(aggregateLiquidFund.convertedCurrentValue) || 0;
+            const liquidInvestedAmount = Number(aggregateLiquidFund.convertedInvestedAmount) || liquidCurrentValue;
+            aggregateMutualFunds.convertedCurrentValue = Math.max(0, Number(aggregateMutualFunds.convertedCurrentValue) - liquidCurrentValue);
+            aggregateMutualFunds.convertedInvestedAmount = Math.max(0, Number(aggregateMutualFunds.convertedInvestedAmount) - liquidInvestedAmount);
+            aggregateMutualFunds.currentValue = aggregateMutualFunds.convertedCurrentValue;
+            aggregateMutualFunds.investedAmount = aggregateMutualFunds.convertedInvestedAmount;
+        }
+        if (aggregateIndianStocks && (aggregateGold || aggregateSilver)) {
+            const metalInvestments = [aggregateGold, aggregateSilver].filter(Boolean) as any[];
+            const metalsValue = metalInvestments.reduce((sum, investment) => sum + (Number(investment.convertedCurrentValue) || 0), 0);
+            const metalsInvested = metalInvestments.reduce((sum, investment) => sum + (Number(investment.convertedInvestedAmount) || 0), 0);
+            aggregateIndianStocks.convertedCurrentValue = Math.max(0, Number(aggregateIndianStocks.convertedCurrentValue) - metalsValue);
+            aggregateIndianStocks.convertedInvestedAmount = Math.max(0, Number(aggregateIndianStocks.convertedInvestedAmount) - metalsInvested);
+            aggregateIndianStocks.currentValue = aggregateIndianStocks.convertedCurrentValue;
+            aggregateIndianStocks.investedAmount = aggregateIndianStocks.convertedInvestedAmount;
+        }
+
+        investedSum = normalizedInvestments.reduce((sum, investment: any) => sum + (Number(investment.convertedInvestedAmount) || 0), 0);
+        currentValueSum = normalizedInvestments.reduce((sum, investment: any) => sum + (Number(investment.convertedCurrentValue) || 0), 0);
+
+        const providerCategories = new Set(
+            investments.map((investment: any) => this.getInvestmentCategory(investment)),
+        );
+        const includedManualHoldings = holdings.filter(
+            (holding) => !providerCategories.has(this.normalizeInvestmentCategory(holding.category)),
+        );
+        const excludedManualHoldings = holdings.filter(
+            (holding) => providerCategories.has(this.normalizeInvestmentCategory(holding.category)),
+        );
+        const manualValue = includedManualHoldings.reduce((sum, item) => sum + item.amount, 0);
+        const manualInvested = manualValue;
+        const totalCurrentValue = manualValue + currentValueSum;
+        const totalInvested = manualInvested + investedSum;
+        const gainLoss = totalCurrentValue - totalInvested;
 
         // Get INDmoney connection last sync if exists
         const indConn = await this.indConnModel.findOne({ userId: new Types.ObjectId(userId), provider: 'indmoney' }).lean();
@@ -94,10 +138,27 @@ export class PortfolioService {
             .lean();
 
         return {
-            totalInvested: investedSum + holdings.reduce((s, h) => s + h.amount, 0),
-            portfolioValue: totalTrackedValue,
-            holdings,
+            totalInvested,
+            portfolioValue: totalCurrentValue,
+            currentValue: totalCurrentValue,
+            gainLoss,
+            gainLossPercentage: totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0,
+            breakdown: {
+                manual: { investedAmount: manualInvested, currentValue: manualValue },
+                indmoney: { investedAmount: investedSum, currentValue: currentValueSum },
+            },
+            holdings: [
+                ...includedManualHoldings,
+                ...normalizedInvestments.map((investment: any) => ({
+                    category: this.getInvestmentCategory(investment),
+                    amount: Number(investment.convertedCurrentValue || investment.currentValue || 0),
+                    source: 'indmoney',
+                    date: investment.lastSyncedAt,
+                })),
+            ],
+            excludedManualHoldings,
             investments: normalizedInvestments,
+            snapshots: await this.getSnapshots(userId),
             lastSync: lastSync ? {
                 trigger: lastSync.trigger,
                 status: lastSync.status,
@@ -153,6 +214,7 @@ export class PortfolioService {
 
             const holdings = await this.upsertHoldings(userId, parsedHoldings, 'excel');
             const totalValue = holdings.reduce((sum, item) => sum + item.amount, 0);
+            await this.recordSnapshot(userId, holdings, 'excel', syncLog._id.toString());
 
             syncLog.status = 'success';
             syncLog.sourceFile = workbookSource.sourceLabel;
@@ -180,6 +242,33 @@ export class PortfolioService {
             this.logger.error(`Portfolio sync failed for user ${userId}: ${syncLog.errorMessage}`);
             throw error;
         }
+    }
+
+    async getSnapshots(userId: string, limit = 90): Promise<any[]> {
+        return this.portfolioSnapshotModel
+            .find({ userId: new Types.ObjectId(userId) })
+            .sort({ capturedAt: -1 })
+            .limit(Math.min(Math.max(Number(limit) || 90, 1), 365))
+            .lean();
+    }
+
+    async recordSnapshot(userId: string, holdings: any[], source: 'manual' | 'excel' | 'indmoney' | 'combined', syncId?: string) {
+        const currentValue = holdings.reduce((sum, holding) => sum + (Number(holding.amount ?? holding.currentValue) || 0), 0);
+        const allocation = holdings.reduce((result, holding) => {
+            const key = holding.category || holding.assetType || 'Other';
+            result[key] = (result[key] || 0) + (Number(holding.amount ?? holding.currentValue) || 0);
+            return result;
+        }, {} as Record<string, number>);
+
+        return this.portfolioSnapshotModel.create({
+            userId: new Types.ObjectId(userId),
+            capturedAt: new Date(),
+            investedAmount: currentValue,
+            currentValue,
+            source,
+            syncId,
+            allocation,
+        });
     }
 
     private async resolveCronTargetUser(): Promise<UserDocument | null> {
@@ -351,6 +440,18 @@ export class PortfolioService {
             return null;
         }
 
+        if (normalized.includes('liquid')) {
+            return 'Liquid Fund';
+        }
+
+        if (normalized.includes('gold')) {
+            return 'Gold';
+        }
+
+        if (normalized.includes('silver')) {
+            return 'Silver';
+        }
+
         if (normalized.includes('ind') && normalized.includes('stock')) {
             return 'Indian Stocks';
         }
@@ -361,14 +462,6 @@ export class PortfolioService {
 
         if (normalized.includes('mutual') || normalized.includes('fund')) {
             return 'Mutual Funds';
-        }
-
-        if (normalized.includes('gold')) {
-            return 'Gold';
-        }
-
-        if (normalized.includes('silver')) {
-            return 'Silver';
         }
 
         const matchingCategory = TRACKED_CATEGORIES.find(item => item.toLowerCase() === normalized);
@@ -409,17 +502,47 @@ export class PortfolioService {
             .sort({ updatedAt: -1 })
             .lean();
 
-        const holdingsByCategory = new Map<string, { category: string; amount: number }>();
+        const holdingsByCategory = new Map<string, { category: string; amount: number; source?: string; date?: Date }>();
 
         for (const document of documents) {
             if (!holdingsByCategory.has(document.category)) {
                 holdingsByCategory.set(document.category, {
                     category: document.category,
                     amount: Number(document.amount) || 0,
+                    source: document.source,
+                    date: document.date,
                 });
             }
         }
 
         return Array.from(holdingsByCategory.values()).sort((left, right) => right.amount - left.amount);
+    }
+
+    private normalizeInvestmentCategory(value: string): string {
+        const normalized = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        if (normalized.includes('silver')) return 'Silver';
+        if (normalized.includes('gold')) return 'Gold';
+        if (normalized.includes('liquid')) return 'Liquid Fund';
+        if (normalized.includes('indstock') || normalized.includes('indian stock')) return 'Indian Stocks';
+        if (normalized.includes('us stock') || normalized.includes('global equity')) return 'US Stocks';
+        if (normalized.includes('mutual fund') || normalized.includes('fund')) return 'Mutual Funds';
+        return value;
+    }
+
+    private getInvestmentCategory(investment: any): string {
+        return this.normalizeInvestmentCategory([
+            investment.assetType,
+            investment.name,
+            investment.symbol,
+            investment.isin,
+        ].filter(Boolean).join(' '));
+    }
+
+    private isAggregateInvestment(investment: any, category: string): boolean {
+        const fields = [investment.externalId, investment.name, investment.assetType]
+            .filter(Boolean)
+            .map((value) => this.normalizeInvestmentCategory(String(value)));
+        return fields.includes(category) ||
+            (category === 'Indian Stocks' && fields.some((value) => value === 'INDstocks' || value === 'Indian Stocks'));
     }
 }

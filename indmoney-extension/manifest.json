@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Expense Tracker INDmoney Capture",
+  "version": "1.0.0",
+  "description": "Adds a manual capture button to visible INDmoney portfolio pages.",
+  "permissions": [],
+  "host_permissions": [
+    "https://www.indmoney.com/*",
+    "https://indmoney.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.indmoney.com/*",
+        "https://indmoney.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

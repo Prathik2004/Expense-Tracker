@@ -35,4 +35,10 @@ export class PortfolioController {
     getPortfolio(@Request() req: any) {
         return this.portfolioService.getPortfolio(req.user.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('history')
+    getHistory(@Request() req: any) {
+        return this.portfolioService.getSnapshots(req.user.userId);
+    }
 }

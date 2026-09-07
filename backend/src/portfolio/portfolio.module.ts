@@ -7,6 +7,7 @@ import { PortfolioSyncLogSchema } from '../schemas/portfolio-sync-log.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { InvestmentSchema } from '../schemas/investment.schema';
 import { IndmoneyConnectionSchema } from '../schemas/indmoney-connection.schema';
+import { PortfolioSnapshotSchema } from '../schemas/portfolio-snapshot.schema';
 import { CurrencyConversionService } from '../services/currency-conversion.service';
 
 @Module({
@@ -17,6 +18,7 @@ import { CurrencyConversionService } from '../services/currency-conversion.servi
             { name: User.name, schema: UserSchema },
             { name: 'Investment', schema: InvestmentSchema },
             { name: 'IndmoneyConnection', schema: IndmoneyConnectionSchema },
+            { name: 'PortfolioSnapshot', schema: PortfolioSnapshotSchema },
         ])
     ],
     controllers: [PortfolioController],

@@ -27,7 +27,7 @@ const AddTransactionModal = dynamic(() => import("@/components/transactions/AddT
 const CATEGORIES_LIST = [
     "Food", "Transport", "Housing", "Utilities", "Entertainment", "Healthcare", "Shopping",
     "Salary", "Main Income", "Side Income", "Freelance", "Rental Income", "Bonus", "Gift", "Refund",
-    "SIP", "Mutual Funds", "Indian Stocks", "US Stocks", "Gold", "Silver", "Bonds", "Crypto", "Other"
+    "SIP", "Mutual Funds", "Liquid Fund", "Indian Stocks", "US Stocks", "Gold", "Silver", "Bonds", "Crypto", "Other"
 ];
 
 const MONTH_NAMES = [
