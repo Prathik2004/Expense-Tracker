@@ -11,6 +11,7 @@ import {
     PieChart,
     BarChart3,
     HandCoins,
+    Settings,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
     { href: '/lending',     label: 'Lending',       icon: HandCoins },
     { href: '/goals',       label: 'Goals',         icon: Target },
     { href: '/budgets',     label: 'Budgets',       icon: PieChart },
+    { href: '/settings/integrations', label: 'Settings', icon: Settings },
 ];
 
 export function BottomNav() {
@@ -37,7 +39,7 @@ export function BottomNav() {
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
             <div className="absolute inset-0 bg-card/95 dark:bg-card/95 backdrop-blur-sm border-t border-border" />
-            <div className="relative grid grid-cols-6 h-14">
+            <div className="relative grid grid-cols-7 h-14">
                 {navItems.map((item) => {
                     const isAdminItem = (item as any).adminOnly;
                     if (isAdminItem && user?.email !== 'prathik1611@gmail.com') return null;
