@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Headers, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { MCPService } from './mcp.service';
-import { ApiKeyGuard } from './auth/api-key.guard';
+import { McpAuthGuard } from './auth/mcp-auth.guard';
 import { Scopes } from './auth/scopes.decorator';
 import { ScopeGuard } from './security/scope.guard';
 import { ToolCallDto } from './dto/tool-call.dto';
@@ -12,7 +12,7 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('mcp')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(McpAuthGuard, ScopeGuard)
 export class MCPController {
   constructor(private readonly mcpService: MCPService) {}
 

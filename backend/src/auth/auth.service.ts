@@ -88,4 +88,17 @@ export class AuthService {
         // Auto-login after registration
         return this.login(user.email, registerDto.password);
     }
+
+    /**
+     * Validate a JWT token and return its payload
+     * Used by OAuthGuard for MCP authentication
+     */
+    async validateToken(token: string): Promise<any> {
+        try {
+            const payload = this.jwtService.verify(token);
+            return payload;
+        } catch (error) {
+            throw new Error('Invalid token');
+        }
+    }
 }
