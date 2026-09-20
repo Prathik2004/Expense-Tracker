@@ -11,6 +11,6 @@ import { ApiKey, ApiKeySchema } from './api-key.schema';
   ],
   controllers: [ApiKeyController],
   providers: [ApiKeyService, ApiKeyGuard],
-  exports: [ApiKeyService, ApiKeyGuard],
+  exports: [ApiKeyService, ApiKeyGuard, MongooseModule],
 })
 export class ApiKeyModule {}
