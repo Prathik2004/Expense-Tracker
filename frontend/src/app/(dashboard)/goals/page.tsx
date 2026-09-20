@@ -55,7 +55,7 @@ export default function GoalsPage() {
         <div className="space-y-5 pb-20 animate-fade-in-up">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
+                <div data-tour="page-heading">
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">Savings Goals</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
                         {activeGoals.length} active
@@ -63,6 +63,7 @@ export default function GoalsPage() {
                     </p>
                 </div>
                 <Button
+                    data-tour="page-action"
                     onClick={() => setIsAddOpen(true)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-lg text-sm font-medium border-0"
                 >

@@ -9,6 +9,7 @@ import { Loader2, Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
+import { FirstVisitTour } from './FirstVisitTour';
 
 const CommandPalette = dynamic(() => import('./CommandPalette').then(mod => mod.CommandPalette), { ssr: false });
 const AddTransactionModal = dynamic(() => import('@/components/transactions/AddTransactionModal').then(mod => mod.AddTransactionModal), { ssr: false });
@@ -127,6 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
 
             <BottomNav />
+            <FirstVisitTour />
             <AddTransactionModal
                 isOpen={isAddModalOpen}
                 onClose={() => { setIsAddModalOpen(false); setSmartTransactionData(null); }}

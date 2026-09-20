@@ -25,6 +25,9 @@ export class User {
 
   @Prop()
   currentChallenge?: string;
+
+  @Prop()
+  portfolioSyncUrl?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

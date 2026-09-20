@@ -98,7 +98,7 @@ export default function PortfolioPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
+                <div data-tour="page-heading">
                     <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mt-1">
                         Track your holdings from Google Sheets or update them manually.
@@ -109,7 +109,7 @@ export default function PortfolioPage() {
                         </p>
                     )}
                 </div>
-                <Button onClick={handleManualSync} disabled={isSyncing} className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Button data-tour="page-action" onClick={handleManualSync} disabled={isSyncing} className="bg-purple-600 hover:bg-purple-700 text-white">
                     {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
                     Sync from OneDrive
                 </Button>

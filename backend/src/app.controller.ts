@@ -15,6 +15,11 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Get('health')
+  healthCheck() {
+    return { status: 'ok' };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('admin/google-sheet-sync')
   async triggerGoogleSheetSync(@Request() req: any) {

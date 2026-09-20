@@ -74,13 +74,14 @@ export default function BudgetsPage() {
         <div className="space-y-5 animate-fade-in-up">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
+                <div data-tour="page-heading">
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">Budgets</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
                         {currentMonthDisplay}
                     </p>
                 </div>
                 <Button
+                    data-tour="page-action"
                     onClick={() => setIsAddOpen(true)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-lg text-sm font-medium border-0"
                 >

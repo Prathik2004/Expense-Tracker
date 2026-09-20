@@ -15,6 +15,8 @@ import {
     Moon,
     Sun,
     ChevronRight,
+    Settings,
+    Key,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -26,7 +28,8 @@ const navItems = [
     { href: '/lending',      label: 'Lending',     icon: HandCoins },
     { href: '/goals',         label: 'Goals',       icon: Target },
     { href: '/budgets',      label: 'Budgets',     icon: PieChart },
-    { href: '/settings/integrations', label: 'Settings', icon: LayoutDashboard },
+    { href: '/settings/integrations', label: 'Integrations', icon: Settings },
+    { href: '/settings/mcp',      label: 'MCP Server',     icon: Key },
 ];
 
 export function Sidebar() {

@@ -78,11 +78,11 @@ export default function TransactionsPage() {
             if (endDate) params.set('endDate', endDate);
             if (minAmount) params.set('minAmount', minAmount);
             if (maxAmount) params.set('maxAmount', maxAmount);
-            if (selectedCategoriesRef.current.length > 0) params.set('categories', selectedCategoriesRef.current.join(','));
+            if (selectedCategoriesRef.current.length > 0) params.set('category', selectedCategoriesRef.current.join(','));
 
             const res = await api.get(`/transactions?${params.toString()}`);
             setTransactions(res.data.data || []);
-            setTotal(res.data.total || 0);
+            setTotal(res.data.totalItems || 0);
         } catch (err) {
             console.error("Failed to fetch transactions", err);
             toast.error("Failed to load transactions");
@@ -133,6 +133,12 @@ export default function TransactionsPage() {
         setType('all'); setSearch(''); setStartDate(''); setEndDate('');
         setMinAmount(''); setMaxAmount(''); setSelectedCategories([]);
         setPage(1);
+        // Fetch immediately with all filters cleared (don't rely on useEffect with stale closures)
+        const params = new URLSearchParams({ page: '1', limit: String(limit) });
+        api.get(`/transactions?${params.toString()}`).then(res => {
+            setTransactions(res.data.data || []);
+            setTotal(res.data.totalItems || 0);
+        }).catch(() => toast.error("Failed to load transactions"));
     };
 
     const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -155,7 +161,7 @@ export default function TransactionsPage() {
         <div className="space-y-4 pb-20 animate-fade-in-up">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
+                <div data-tour="page-heading">
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">Transactions</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
                         {total > 0 ? `${total} transaction${total !== 1 ? 's' : ''}` : 'No transactions yet'}
@@ -167,6 +173,7 @@ export default function TransactionsPage() {
                         Export
                     </Button>
                     <Button
+                        data-tour="page-action"
                         onClick={() => { setEditingTx(null); setIsAddOpen(true); }}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 rounded-lg text-sm font-medium border-0"
                     >
@@ -177,7 +184,7 @@ export default function TransactionsPage() {
             </div>
 
             {/* Type filter chips */}
-            <div className="flex items-center gap-2">
+            <div data-tour="page-tools" className="flex items-center gap-2">
                 <div className="flex bg-muted rounded-lg p-1 gap-0.5">
                     {TYPE_FILTERS.map(f => (
                         <button

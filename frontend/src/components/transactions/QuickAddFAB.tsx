@@ -12,14 +12,14 @@ export function QuickAddFAB({ onClick }: QuickAddFABProps) {
 
     if (onClick) {
         return (
-            <button onClick={onClick} className={classes} aria-label="Add transaction">
+            <button data-tour="add-transaction" onClick={onClick} className={classes} aria-label="Add transaction">
                 <Plus className="w-6 h-6" />
             </button>
         );
     }
 
     return (
-        <Link href="/transactions?add=true" className={classes} aria-label="Add transaction">
+        <Link data-tour="add-transaction" href="/transactions?add=true" className={classes} aria-label="Add transaction">
             <Plus className="w-6 h-6" />
         </Link>
     );

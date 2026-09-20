@@ -12,6 +12,7 @@ import {
     BarChart3,
     HandCoins,
     Settings,
+    Key
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
     { href: '/goals',       label: 'Goals',         icon: Target },
     { href: '/budgets',     label: 'Budgets',       icon: PieChart },
     { href: '/settings/integrations', label: 'Settings', icon: Settings },
+    { href: '/settings/mcp',      label: 'MCP Server',     icon: Key },
 ];
 
 export function BottomNav() {

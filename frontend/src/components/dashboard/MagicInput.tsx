@@ -26,7 +26,7 @@ export function MagicInput({ onMagicAdd, categories }: MagicInputProps) {
     };
 
     return (
-        <div className="relative group max-w-2xl mx-auto w-full">
+        <div data-tour="magic-input" className="relative group max-w-2xl mx-auto w-full">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl blur opacity-25 group-focus-within:opacity-50 transition duration-1000 group-focus-within:duration-200"></div>
             <form onSubmit={handleSubmit} className="relative flex items-center">
                 <div className="absolute left-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors">

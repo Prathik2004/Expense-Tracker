@@ -16,6 +16,7 @@ import { SecurityModule } from './security/security.module';
 import { EventsModule } from './events/events.module';
 import { GoogleSheetsSyncModule } from './google-sheets-sync/google-sheets-sync.module';
 import { IndmoneyModule } from './integrations/indmoney/indmoney.module';
+import { MCPModule } from './mcp/mcp.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { IndmoneyModule } from './integrations/indmoney/indmoney.module';
     GoogleSheetsSyncModule,
     // INDmoney integration module
     IndmoneyModule,
+    MCPModule,
   ],
   controllers: [AppController],
   providers: [AppService],

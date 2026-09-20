@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { MobileSnapshotCapture } from '@/components/portfolio/MobileSnapshotCapture';
+import { ExternalLink } from 'lucide-react';
 
 export default function IntegrationsPage() {
     const [status, setStatus] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [investments, setInvestments] = useState<any[]>([]);
+    const [portfolioSyncUrl, setPortfolioSyncUrl] = useState('');
+    const [savingUrl, setSavingUrl] = useState(false);
 
     const fetchStatus = async () => {
         setLoading(true);
@@ -58,6 +63,18 @@ export default function IntegrationsPage() {
         return () => window.removeEventListener('message', handleSnapshot);
     }, []);
 
+    const handleSavePortfolioSyncUrl = async () => {
+        setSavingUrl(true);
+        try {
+            await api.patch('/users/portfolio-sync-url', { portfolioSyncUrl });
+            toast.success('OneDrive URL saved', { description: 'Portfolio sync will now use this URL.' });
+        } catch (err: any) {
+            toast.error('Failed to save URL', { description: err.response?.data?.message || err.message });
+        } finally {
+            setSavingUrl(false);
+        }
+    };
+
     const handleConnect = async () => {
         setProcessing(true);
         const androidBridge = (window as Window & { ExpenseTrackerAndroid?: { openIndmoney: () => void } }).ExpenseTrackerAndroid;
@@ -85,33 +102,6 @@ export default function IntegrationsPage() {
         } finally { setProcessing(false); }
     };
 
-    const handleSync = async () => {
-        setProcessing(true);
-        try {
-            const resp = await api.post('/integrations/indmoney/sync');
-            toast.success('Sync completed', { description: `Fetched ${resp.data?.fetched || 0} holdings` });
-            fetchStatus();
-        } catch (err: any) {
-            toast.error('Sync failed', { description: err.response?.data?.message || err.message });
-        } finally { setProcessing(false); }
-    };
-
-    const handleBrowserExportImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) return;
-
-        setProcessing(true);
-        try {
-            const payload = JSON.parse(await file.text());
-            const response = await api.post('/integrations/indmoney/browser-export/import', payload);
-            toast.success('INDmoney export imported', { description: `Imported ${response.data?.fetched || 0} holdings` });
-            await fetchStatus();
-        } catch (err: any) {
-            toast.error('Import failed', { description: err.response?.data?.message || 'Use a valid export with the holdings table visible.' });
-        } finally { setProcessing(false); }
-    };
-
     const handleDisconnect = async () => {
         setProcessing(true);
         try {
@@ -123,9 +113,20 @@ export default function IntegrationsPage() {
         } finally { setProcessing(false); }
     };
 
+    const handleSync = async () => {
+        setProcessing(true);
+        try {
+            const resp = await api.post('/integrations/indmoney/sync');
+            toast.success('Sync completed', { description: `Fetched ${resp.data?.fetched || 0} holdings` });
+            fetchStatus();
+        } catch (err: any) {
+            toast.error('Sync failed', { description: err.response?.data?.message || err.message });
+        } finally { setProcessing(false); }
+    };
+
     return (
         <div className="space-y-6">
-            <div>
+            <div data-tour="page-heading">
                 <h1 className="text-3xl font-bold">Integrations</h1>
                 <p className="text-zinc-500 mt-1">Connect external providers to import your data.</p>
             </div>
@@ -137,12 +138,8 @@ export default function IntegrationsPage() {
                 <CardContent>
                     {!status || !status.connected ? (
                         <div className="space-y-4">
-                            <p>Connect using OAuth, or import a local browser export into the deployed app.</p>
-                            <Button onClick={handleConnect} disabled={processing} className="bg-purple-600 text-white">{processing ? 'Connecting...' : 'Connect INDmoney'}</Button>
-                            <label className="block text-sm text-zinc-500">
-                                Import local browser export
-                                <input className="mt-2 block w-full text-sm" type="file" accept="application/json,.json" onChange={handleBrowserExportImport} disabled={processing} />
-                            </label>
+                            <p>Connect using OAuth to sync your portfolio.</p>
+                            <Button data-tour="page-action" onClick={handleConnect} disabled={processing} className="bg-purple-600 text-white">{processing ? 'Connecting...' : 'Connect INDmoney'}</Button>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -170,18 +167,57 @@ export default function IntegrationsPage() {
                                     </div>
                                 )}
                             <div className="flex gap-2">
-                                <Button onClick={handleSync} disabled={processing} className="bg-purple-600 text-white">Sync Now</Button>
+                                <Button data-tour="page-action" onClick={handleSync} disabled={processing} className="bg-purple-600 text-white">Sync Now</Button>
                                 <Button variant="outline" onClick={handleDisconnect} disabled={processing}>Disconnect</Button>
                             </div>
-                            <label className="block text-sm text-zinc-500">
-                                Import local browser export
-                                <input className="mt-2 block w-full text-sm" type="file" accept="application/json,.json" onChange={handleBrowserExportImport} disabled={processing} />
-                            </label>
                         </div>
                     )}
                 </CardContent>
             </Card>
-            <MobileSnapshotCapture onSuccess={fetchStatus} />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>OneDrive Portfolio Sync</CardTitle>
+                    <CardDescription>Add a URL to your OneDrive or Google Sheets file to sync portfolio data automatically.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="sync-url">Portfolio Spreadsheet URL</Label>
+                        <Input
+                            id="sync-url"
+                            type="url"
+                            placeholder="https://onedrive.live.com/... or Google Sheets URL"
+                            value={portfolioSyncUrl}
+                            onChange={(e) => setPortfolioSyncUrl(e.target.value)}
+                            disabled={savingUrl}
+                        />
+                        <p className="text-xs text-zinc-500">Enter the direct download/CSV export URL from your OneDrive or Google Sheets file.</p>
+                    </div>
+                    <Button onClick={handleSavePortfolioSyncUrl} disabled={savingUrl || !portfolioSyncUrl} className="bg-purple-600 text-white">
+                        {savingUrl ? 'Saving...' : 'Save URL'}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <ExternalLink className="h-5 w-5 text-purple-600" />
+                        MCP Server (AI Integration)
+                    </CardTitle>
+                    <CardDescription>Connect AI tools like Claude to access your financial data via Model Context Protocol</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Generate API keys and configure AI assistants to securely access your portfolio,
+                        budgets, transactions, goals, and investments.
+                    </p>
+                    <Link href="/settings/mcp" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium">
+                        Configure MCP Server
+                        <ExternalLink className="h-4 w-4" />
+                    </Link>
+                </CardContent>
+            </Card>
         </div>
     );
 }

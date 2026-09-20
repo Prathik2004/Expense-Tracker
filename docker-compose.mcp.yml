@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: expense-tracker-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=expense-tracker
+
+  mcp-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.mcp
+    container_name: expense-tracker-mcp
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/expense-tracker
+      - MCP_PORT=3001
+      - MCP_HOST=0.0.0.0
+      - LOG_LEVEL=info
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=60
+      - RATE_LIMIT_REQUESTS_PER_DAY=10000
+      - AUDIT_LOG_RETENTION_DAYS=90
+      - API_KEY_EXPIRY_DAYS=365
+      - API_KEY_MAX_AGE_DAYS=90
+      - ENABLE_HTTPS=false
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    depends_on:
+      - mongo
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/mcp/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongo_data:

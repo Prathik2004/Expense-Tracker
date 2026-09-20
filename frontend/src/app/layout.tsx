@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "driver.js/dist/driver.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import QueryProvider from "@/components/providers/query-provider";
 

@@ -62,4 +62,12 @@ export class UsersService {
             { new: true }
         ).exec();
     }
+
+    async updatePortfolioSyncUrl(userId: string, portfolioSyncUrl: string): Promise<UserDocument | null> {
+        return this.userModel.findByIdAndUpdate(
+            userId,
+            { portfolioSyncUrl },
+            { new: true }
+        ).exec();
+    }
 }

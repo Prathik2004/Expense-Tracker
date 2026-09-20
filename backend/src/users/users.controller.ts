@@ -15,4 +15,13 @@ export class UsersController {
         }
         return { portfolioValue: user.portfolioValue };
     }
+
+    @Patch('portfolio-sync-url')
+    async updatePortfolioSyncUrl(@Req() req: any, @Body('portfolioSyncUrl') portfolioSyncUrl: string) {
+        const user = await this.usersService.updatePortfolioSyncUrl(req.user.userId, portfolioSyncUrl);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        return { portfolioSyncUrl: user.portfolioSyncUrl };
+    }
 }

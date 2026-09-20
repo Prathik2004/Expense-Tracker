@@ -158,7 +158,7 @@ export default function DashboardPage() {
     return (
         <div className="space-y-5 pb-24 animate-fade-in-up">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div data-tour="dashboard-summary" className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
                     <p className="text-sm text-muted-foreground mb-0.5">{getGreeting()},</p>
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">{firstName}.</h1>

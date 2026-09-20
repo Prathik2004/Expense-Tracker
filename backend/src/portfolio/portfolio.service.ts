@@ -179,6 +179,11 @@ export class PortfolioService {
         return this.syncPortfolio(userId, 'manual');
     }
 
+    async getPortfolioSyncUrl(userId: string): Promise<string | null> {
+        const user = await this.userModel.findById(userId).lean();
+        return user?.portfolioSyncUrl || null;
+    }
+
     async syncPortfolioForCron(): Promise<any> {
         const targetUser = await this.resolveCronTargetUser();
 
@@ -205,7 +210,7 @@ export class PortfolioService {
         });
 
         try {
-            const workbookSource = await this.loadWorkbookSource();
+            const workbookSource = await this.loadWorkbookSource(userId);
             const parsedHoldings = this.parseWorkbook(workbookSource.buffer);
 
             if (parsedHoldings.length === 0) {
@@ -221,7 +226,7 @@ export class PortfolioService {
             syncLog.completedAt = new Date();
             syncLog.categoriesUpdated = holdings.length;
             syncLog.totalValue = totalValue;
-            syncLog.message = `Synced ${holdings.length} tracked assets from Google Sheets`;
+            syncLog.message = `Synced ${holdings.length} tracked assets from OneDrive`;
             await syncLog.save();
 
             return {
@@ -291,15 +296,21 @@ export class PortfolioService {
         return null;
     }
 
-    private async loadWorkbookSource(): Promise<{
+    private async loadWorkbookSource(userId?: string): Promise<{
     buffer: Buffer;
     sourceLabel: string;
 }> {
-    const sheetUrl = process.env.GOOGLE_SHEET_CSV_URL;
+    // First check if user has a custom URL saved
+    let sheetUrl: string | null = userId ? await this.getPortfolioSyncUrl(userId) : null;
+
+    // If user doesn't have a custom URL, fall back to environment variable
+    if (!sheetUrl) {
+        sheetUrl = process.env.GOOGLE_SHEET_CSV_URL || null;
+    }
 
     if (!sheetUrl) {
         throw new Error(
-            'GOOGLE_SHEET_CSV_URL is not configured'
+            'No OneDrive/Google Sheet URL configured. Please add a URL in Settings.'
         );
     }
 
@@ -307,7 +318,7 @@ export class PortfolioService {
 
     if (!response.ok) {
         throw new Error(
-            `Failed to download Google Sheet: ${response.status} ${response.statusText}`
+            `Failed to download spreadsheet: ${response.status} ${response.statusText}`
         );
     }
 
