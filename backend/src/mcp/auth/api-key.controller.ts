@@ -3,7 +3,7 @@ import { ApiKeyService } from './api-key.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('mcp/api-keys')
-@UseGuards(JwtAuthGuard) // Reuse existing JWT auth to manage API keys
+@UseGuards(JwtAuthGuard) // Reuse existing JWT auth to manage API key
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
 
