@@ -1,0 +1,77 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production
+        run: npm run build:production
+
+      - name: Prepare deployment package
+        run: |
+          mkdir -p ../deploy
+          cp -r dist ../deploy/dist
+          cp package.json ../deploy/package.json
+          cp package-lock.json ../deploy/package-lock.json
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-deployment
+          path: backend/deploy
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-deployment
+          path: deploy
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/expense-tracker
+          chmod 600 ~/.ssh/expense-tracker
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload backend
+        run: |
+          scp -i ~/.ssh/expense-tracker \
+            -r deploy/* \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/ubuntu/Expense-Tracker/backend/
+
+      - name: Install production dependencies and restart
+        run: |
+          ssh -i ~/.ssh/expense-tracker \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
+            'cd /home/ubuntu/Expense-Tracker/backend && npm ci --omit=dev && pm2 restart expense-tracker-api --update-env && pm2 save'
