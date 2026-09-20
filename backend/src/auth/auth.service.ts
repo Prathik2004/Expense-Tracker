@@ -94,11 +94,25 @@ export class AuthService {
      * Used by OAuthGuard for MCP authentication
      */
     async validateToken(token: string): Promise<any> {
+        // Input validation
+        if (!token || typeof token !== 'string' || token.trim() === '') {
+            throw new UnauthorizedException('Invalid or missing token');
+        }
+
         try {
-            const payload = this.jwtService.verify(token);
-            return payload;
-        } catch (error) {
-            throw new Error('Invalid token');
+            return this.jwtService.verify(token);
+        } catch (error: unknown) {
+            // Handle common JWT verification errors
+            if (error instanceof Error) {
+                if (error.name === 'TokenExpiredError') {
+                    throw new UnauthorizedException('Token has expired');
+                }
+                if (error.name === 'JsonWebTokenError') {
+                    throw new UnauthorizedException('Invalid token');
+                }
+            }
+            // For any other error, treat as invalid token
+            throw new UnauthorizedException('Invalid token');
         }
     }
 }

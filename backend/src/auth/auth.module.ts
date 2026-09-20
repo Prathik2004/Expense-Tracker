@@ -9,6 +9,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Session, SessionSchema } from '../schemas/session.schema';
+import { OAuthGuard } from './oauth.guard';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { Session, SessionSchema } from '../schemas/session.schema';
     MongooseModule.forFeature([{ name: Session.name, schema: SessionSchema }]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, OAuthGuard],
+  exports: [AuthService, OAuthGuard],
 })
 export class AuthModule { }

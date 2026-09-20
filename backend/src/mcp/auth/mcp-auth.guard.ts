@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ApiKeyGuard } from './api-key.guard';
-import { OAuthGuard } from './oauth.guard';
+import { OAuthGuard } from '../../auth/oauth.guard';
 
 @Injectable()
 export class McpAuthGuard implements CanActivate {

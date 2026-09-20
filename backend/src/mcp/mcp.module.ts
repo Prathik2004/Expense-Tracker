@@ -8,6 +8,7 @@ import { SSETransport } from './transports/sse.transport';
 import { ApiKeyModule } from './auth/api-key.module';
 import { SecurityModule } from './security/security.module';
 import { ToolsModule } from './tools/tools.module';
+import { AuthModule } from '../auth/auth.module';
 import { ApiKey, ApiKeySchema } from './auth/api-key.schema';
 import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 import { mcpConfig } from './config/mcp.config';
@@ -20,6 +21,7 @@ import { mcpConfig } from './config/mcp.config';
       { name: AuditLog.name, schema: AuditLogSchema },
     ]),
     ApiKeyModule,
+    AuthModule,
     SecurityModule,
     forwardRef(() => ToolsModule),
   ],
