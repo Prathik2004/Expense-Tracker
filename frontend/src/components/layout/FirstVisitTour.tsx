@@ -7,7 +7,14 @@ import { useAuthStore } from "@/store/auth.store";
 
 const TOUR_VERSION = "3";
 
-const tourSteps = [
+type TourStep = {
+    path: string;
+    element?: string;
+    title: string;
+    description: string;
+};
+
+const tourSteps: readonly TourStep[] = [
     { path: "/", element: "[data-tour='dashboard-summary']", title: "Welcome to Expensify", description: "This is your monthly financial snapshot. Your balance, income, spending, and investments update as you add transactions." },
     { path: "/", element: "[data-tour='magic-input']", title: "Add an expense in one line", description: "Type something like 150 food coffee and we will fill in the details for you." },
     { path: "/", element: "[data-tour='add-transaction']", title: "Add with the full form", description: "Use this button any time to record income, an expense, or an investment with all its details." },
@@ -25,7 +32,7 @@ const tourSteps = [
     { path: "/settings/integrations", element: "[data-tour='page-heading']", title: "Integrations", description: "Connect supported services to bring your financial data into Expensify." },
     { path: "/settings/integrations", element: "[data-tour='page-action']", title: "Connect or sync", description: "Use this control to connect INDmoney or refresh an existing connection." },
     { path: "/settings/integrations", title: "You are ready to go", description: "That is the full tour. You can revisit any section from the navigation whenever you need it." },
-] as const;
+];
 
 export function FirstVisitTour() {
     const pathname = usePathname();
