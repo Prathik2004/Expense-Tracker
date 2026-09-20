@@ -45,5 +45,4 @@ export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
 
 // Create indexes
 ApiKeySchema.index({ userId: 1 });
-ApiKeySchema.index({ key: 1 }, { unique: true });
 ApiKeySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for expiration
