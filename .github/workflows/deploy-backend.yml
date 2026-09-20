@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build production
-        run: npm run build:production
+        run: npm run build
 
       - name: Prepare deployment package
         run: |
@@ -39,12 +39,14 @@ jobs:
           cp -r dist ../deploy/dist
           cp package.json ../deploy/package.json
           cp package-lock.json ../deploy/package-lock.json
+          cp .npmrc ../deploy/.npmrc
 
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-deployment
-          path: backend/deploy
+          path: deploy
+          if-no-files-found: error
 
   deploy:
     needs: build
@@ -52,7 +54,7 @@ jobs:
 
     steps:
       - name: Download deployment artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: backend-deployment
           path: deploy
@@ -67,7 +69,7 @@ jobs:
       - name: Upload backend
         run: |
           scp -i ~/.ssh/expense-tracker \
-            -r deploy/* \
+            -r deploy/. \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/ubuntu/Expense-Tracker/backend/
 
       - name: Install production dependencies and restart
