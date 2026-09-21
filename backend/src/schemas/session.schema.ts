@@ -25,6 +25,9 @@ export class Session {
 
     @Prop({ default: true })
     isValid: boolean;
+
+    @Prop()
+    expiresAt?: Date;
 }
 
 export const SessionSchema = SchemaFactory.createForClass(Session);

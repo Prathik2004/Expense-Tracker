@@ -11,16 +11,20 @@ export class McpAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Try API Key authentication first
-    const isApiKeyValid = await this.apiKeyGuard.canActivate(context);
-    if (isApiKeyValid) {
-      return true;
+    try {
+      const isApiKeyValid = await this.apiKeyGuard.canActivate(context);
+      if (isApiKeyValid) {
+        return true;
+      }
+    } catch (apiKeyError) {
+      // API key validation failed (missing or invalid), try OAuth
     }
 
     // If API Key fails, try OAuth authentication
     try {
       const isOAuthValid = await this.oauthGuard.canActivate(context);
       return isOAuthValid;
-    } catch (error) {
+    } catch (oauthError) {
       // If both fail, throw unauthorized
       throw new UnauthorizedException('Invalid authentication credentials');
     }
