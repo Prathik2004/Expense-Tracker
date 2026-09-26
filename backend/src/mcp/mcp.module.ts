@@ -12,6 +12,8 @@ import { AuthModule } from '../auth/auth.module';
 import { ApiKey, ApiKeySchema } from './auth/api-key.schema';
 import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 import { mcpConfig } from './config/mcp.config';
+import { OauthDiscoveryController } from './oauth-discovery.controller';
+import { McpAuthExceptionFilter } from './filters/mcp-auth-exception.filter';
 
 @Module({
   imports: [
