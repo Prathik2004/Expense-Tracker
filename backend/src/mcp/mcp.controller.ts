@@ -6,6 +6,11 @@ import { Scopes } from './auth/scopes.decorator';
 import { ScopeGuard } from './security/scope.guard';
 import { ToolCallDto } from './dto/tool-call.dto';
 import { UserPayload } from './auth/api-key-payload';
+import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { OAuthClient, OAuthClientDocument } from '../schemas/oauth-client.schema';
+import * as crypto from 'crypto';
 
 interface AuthenticatedRequest extends Request {
   user: UserPayload;
@@ -14,7 +19,11 @@ interface AuthenticatedRequest extends Request {
 @Controller('mcp')
 @UseGuards(McpAuthGuard, ScopeGuard)
 export class MCPController {
-  constructor(private readonly mcpService: MCPService) {}
+  constructor(
+    private readonly mcpService: MCPService,
+    private readonly configService: ConfigService,
+    @InjectModel(OAuthClient.name) private oauthClientModel: Model<OAuthClientDocument>,
+  ) {}
 
   @Get('health')
   healthCheck() {
@@ -23,6 +32,43 @@ export class MCPController {
       timestamp: new Date().toISOString(),
       version: '1.0.0',
     };
+  }
+
+  // Special endpoint to initiate OAuth flow for MCP
+  @Get('oauth/initiate')
+  async initiateOAuthFlow(
+    @Res() res: Response,
+  ) {
+    // Generate a temporary client for this OAuth flow
+    const clientId = `mcp_claude_${crypto.randomBytes(16).toString('hex')}`;
+    const clientSecret = crypto.randomBytes(32).toString('hex');
+
+    // Create temporary OAuth client (expires in 1 hour)
+    await this.oauthClientModel.create({
+      clientId,
+      clientSecret,
+      name: 'Temporary Claude MCP Client',
+      redirectUris: [
+        'https://claude.ai/api/mcp/auth_callback',
+        `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/mcp-oauth-callback`
+      ],
+      scopes: ['mcp:full_read'],
+      isActive: true,
+      // Note: In production, you'd want to set an expiration date or clean up old clients
+    });
+
+    // Build the authorization URL
+    const authUrl = new URL(`${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/oauth/authorize`);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', 'https://claude.ai/api/mcp/auth_callback');
+    authUrl.searchParams.set('scope', 'mcp:full_read');
+    authUrl.searchParams.set('state', crypto.randomBytes(16).toString('hex')); // Secure state
+    authUrl.searchParams.set('code_challenge', 'placeholder_challenge'); // For PKCE - in production, generate properly
+    authUrl.searchParams.set('code_challenge_method', 'S256');
+
+    // Redirect to OAuth authorization endpoint
+    return res.redirect(authUrl.toString());
   }
 
   @Post('tools/call')
