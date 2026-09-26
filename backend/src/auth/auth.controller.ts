@@ -21,12 +21,41 @@ export class AuthController {
 
     @HttpCode(HttpStatus.OK)
     @Post('login')
-    async login(@Body() loginDto: LoginDto, @Request() req: any) {
+    async login(@Body() loginDto: LoginDto, @Request() req: any, @Res() res: Response) {
         const metadata = {
             ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
             userAgent: req.headers['user-agent']
         };
-        return this.authService.login(loginDto.email, loginDto.password, metadata);
+
+        // Check if this login request is part of an OAuth flow
+        const redirectTo = req.body.redirectTo || req.query.redirectTo;
+        if (redirectTo && typeof redirectTo === 'string' && redirectTo.includes('/oauth/')) {
+            // This is an OAuth flow login - after login, redirect back to complete OAuth
+            const { access_token } = await this.authService.login(loginDto.email, loginDto.password, metadata);
+
+            // Set HTTP-only cookie for security
+            res.cookie('token', access_token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/'
+            });
+
+            // Redirect back to the OAuth endpoint to continue the flow
+            return res.redirect(redirectTo);
+        }
+
+        // Normal login behavior - return token in response body
+        const { access_token, user } = await this.authService.login(loginDto.email, loginDto.password, metadata);
+        return {
+            access_token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                picture: user.picture
+            }
+        };
     }
 
     @Get('google')
