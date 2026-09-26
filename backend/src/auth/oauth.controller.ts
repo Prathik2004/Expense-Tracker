@@ -21,27 +21,44 @@ export class OAuthController {
 
   // Dynamic client registration for development/testing
   @Post('register')
-  async registerClient(@Body() body: { name: string; redirectUris: string[] }) {
+  async registerClient(@Body() body: {
+    client_name: string;
+    redirect_uris: string[];
+    grant_types?: string[];
+    response_types?: string[];
+    token_endpoint_auth_method?: string;
+  }) {
     const clientId = `oauth_${crypto.randomBytes(16).toString('hex')}`;
     const clientSecret = crypto.randomBytes(32).toString('hex');
 
+    // Map standard OAuth Dynamic Client Registration fields to internal schema
+    // client_name -> name, redirect_uris -> redirectUris, etc.
     const client = await this.oauthClientModel.create({
       clientId,
       clientSecret,
-      name: body.name,
-      redirectUris: body.redirectUris,
+      name: body.client_name,
+      redirectUris: body.redirect_uris,
       scopes: ['mcp:full_read'],
       isActive: true,
     });
 
-    return {
+    // Return standard OAuth Dynamic Client Registration response
+    // Only return client_secret if token_endpoint_auth_method is client_secret_basic
+    const response: Record<string, any> = {
       client_id: client.clientId,
-      client_secret: client.clientSecret,
+      client_name: client.name,
       redirect_uris: client.redirectUris,
-      grant_types: ['authorization_code', 'refresh_token'],
-      response_types: ['code'],
-      token_endpoint_auth_method: 'client_secret_basic',
+      grant_types: body.grant_types ?? ['authorization_code', 'refresh_token'],
+      response_types: body.response_types ?? ['code'],
+      token_endpoint_auth_method: body.token_endpoint_auth_method ?? 'client_secret_basic',
     };
+
+    // Only include client_secret for confidential clients
+    if (body.token_endpoint_auth_method !== 'none') {
+      response.client_secret = client.clientSecret;
+    }
+
+    return response;
   }
 
   // Authorization endpoint
