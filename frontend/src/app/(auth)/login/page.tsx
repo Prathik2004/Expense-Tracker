@@ -20,13 +20,28 @@ export default function LoginPage() {
     const login = useAuthStore((state) => state.login);
     const router = useRouter();
 
+    // Get redirect_to parameter from URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get('redirect_to');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
         try {
-            await login({ email, password });
-            router.push('/');
+            // Include redirect_to in login request if present
+            const loginData: any = { email, password };
+            if (redirectTo) {
+                loginData.redirectTo = redirectTo;
+            }
+
+            await login(loginData);
+
+            // If there was a redirectTo, the backend should have redirected us
+            // Otherwise, go to home
+            if (!redirectTo) {
+                router.push('/');
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Invalid email or password.');
         } finally {

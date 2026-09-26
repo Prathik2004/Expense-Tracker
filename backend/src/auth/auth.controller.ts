@@ -28,7 +28,7 @@ export class AuthController {
         };
 
         // Check if this login request is part of an OAuth flow
-        const redirectTo = req.body.redirectTo || req.query.redirectTo;
+        const redirectTo = req.body.redirectTo;
         if (redirectTo && typeof redirectTo === 'string' && redirectTo.includes('/oauth/')) {
             // This is an OAuth flow login - after login, redirect back to complete OAuth
             const { access_token } = await this.authService.login(loginDto.email, loginDto.password, metadata);
