@@ -37,6 +37,9 @@ export class HttpTransport {
 
       try {
         switch (requestBody.method) {
+          case 'initialize':
+            result = await this.handleInitialize(requestBody.params || {});
+            break;
           case 'tools/list':
             result = this.mcpService.listTools();
             break;
@@ -102,5 +105,26 @@ export class HttpTransport {
         },
       });
     }
+  }
+
+  private async handleInitialize(params: Record<string, any>): Promise<any> {
+    // Return MCP initialize response according to spec
+    return {
+      protocolVersion: '2025-06-18', // Match the version from test request
+      capabilities: {
+        tools: {
+          listChanged: false
+        },
+        resources: {
+          subscribe: false,
+          listChanged: false
+        },
+        logging: {}
+      },
+      serverInfo: {
+        name: 'Expense Tracker MCP Server',
+        version: '1.0.0'
+      }
+    };
   }
 }

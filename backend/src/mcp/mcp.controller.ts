@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Req, Res, UseFilters, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, UseGuards, UseFilters, HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { MCPService } from './mcp.service';
+import { McpAuthGuard } from './auth/mcp-auth.guard';
 import { Scopes } from './auth/scopes.decorator';
+import { ScopeGuard } from './security/scope.guard';
 import { ToolCallDto } from './dto/tool-call.dto';
 import { UserPayload } from './auth/api-key-payload';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +12,7 @@ import { Model } from 'mongoose';
 import { OAuthClient, OAuthClientDocument } from '../schemas/oauth-client.schema';
 import * as crypto from 'crypto';
 import { McpAuthExceptionFilter } from './filters/mcp-auth-exception.filter';
+import { HttpTransport } from './transports/http.transport';
 import { Public } from '../auth/public.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -17,12 +20,14 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('mcp')
+@UseGuards(McpAuthGuard, ScopeGuard)
 @UseFilters(McpAuthExceptionFilter)
 export class MCPController {
   constructor(
     private readonly mcpService: MCPService,
     private readonly configService: ConfigService,
     @InjectModel(OAuthClient.name) private oauthClientModel: Model<OAuthClientDocument>,
+    private readonly httpTransport: HttpTransport,
   ) {}
 
   // Helper to normalize URLs by removing trailing slashes
@@ -83,6 +88,16 @@ export class MCPController {
 
     // Redirect to OAuth authorization endpoint
     return res.redirect(authUrl.toString());
+  }
+
+  // Main MCP endpoint for JSON-RPC 2.0 over HTTP
+  @Post()
+  async handleMCPRequest(
+    @Body() body: Record<string, any>,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    await this.httpTransport.handleMCPRequest(req, res);
   }
 
   @Post('tools/call')
