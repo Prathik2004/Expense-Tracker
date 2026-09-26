@@ -1,9 +1,7 @@
-import { Controller, Get, Post, Body, Req, Res, UseGuards, UseFilters, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, UseFilters, HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { MCPService } from './mcp.service';
-import { McpAuthGuard } from './auth/mcp-auth.guard';
 import { Scopes } from './auth/scopes.decorator';
-import { ScopeGuard } from './security/scope.guard';
 import { ToolCallDto } from './dto/tool-call.dto';
 import { UserPayload } from './auth/api-key-payload';
 import { ConfigService } from '@nestjs/config';
@@ -12,13 +10,13 @@ import { Model } from 'mongoose';
 import { OAuthClient, OAuthClientDocument } from '../schemas/oauth-client.schema';
 import * as crypto from 'crypto';
 import { McpAuthExceptionFilter } from './filters/mcp-auth-exception.filter';
+import { Public } from '../auth/public.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: UserPayload;
 }
 
 @Controller('mcp')
-@UseGuards(McpAuthGuard, ScopeGuard)
 @UseFilters(McpAuthExceptionFilter)
 export class MCPController {
   constructor(
@@ -27,7 +25,13 @@ export class MCPController {
     @InjectModel(OAuthClient.name) private oauthClientModel: Model<OAuthClientDocument>,
   ) {}
 
+  // Helper to normalize URLs by removing trailing slashes
+  private normalizeUrl(url: string): string {
+    return url.replace(/\/+$/, '');
+  }
+
   @Get('health')
+  @Public()
   healthCheck() {
     return {
       status: 'ok',
@@ -38,12 +42,20 @@ export class MCPController {
 
   // Special endpoint to initiate OAuth flow for MCP
   @Get('oauth/initiate')
+  @Public()
   async initiateOAuthFlow(
     @Res() res: Response,
   ) {
     // Generate a temporary client for this OAuth flow
     const clientId = `mcp_claude_${crypto.randomBytes(16).toString('hex')}`;
     const clientSecret = crypto.randomBytes(32).toString('hex');
+
+    // Use OAUTH_ISSUER_URL for the OAuth server, not FRONTEND_URL (which has trailing slash)
+    const oauthIssuerUrl = this.normalizeUrl(
+      this.configService.get<string>('OAUTH_ISSUER_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:3000'
+    );
 
     // Create temporary OAuth client (expires in 1 hour)
     await this.oauthClientModel.create({
@@ -52,7 +64,7 @@ export class MCPController {
       name: 'Temporary Claude MCP Client',
       redirectUris: [
         'https://claude.ai/api/mcp/auth_callback',
-        `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/mcp-oauth-callback`
+        `${oauthIssuerUrl}/mcp-oauth-callback`
       ],
       scopes: ['mcp:full_read'],
       isActive: true,
@@ -60,7 +72,7 @@ export class MCPController {
     });
 
     // Build the authorization URL
-    const authUrl = new URL(`${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/oauth/authorize`);
+    const authUrl = new URL(`${oauthIssuerUrl}/oauth/authorize`);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', 'https://claude.ai/api/mcp/auth_callback');
@@ -99,10 +111,20 @@ export class MCPController {
       // If it's an authentication error, ensure proper WWW-Authenticate header
       const err = error as { response?: { statusCode?: number }; message?: string };
       if (err.response?.statusCode === 401 || err.message?.includes('Unauthorized')) {
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        const mcpServerUrl = this.normalizeUrl(
+          this.configService.get<string>('MCP_SERVER_URL') ||
+          'https://expense-tracker.pntr.dev/mcp'
+        );
+
+        const oauthIssuerUrl = this.normalizeUrl(
+          this.configService.get<string>('OAUTH_ISSUER_URL') ||
+          this.configService.get<string>('FRONTEND_URL') ||
+          'http://localhost:3000'
+        );
+
         res.setHeader(
           'WWW-Authenticate',
-          `Bearer resource="https://expense-tracker.pntr.dev/mcp", authorization_server="${frontendUrl}"`
+          `Bearer resource="${mcpServerUrl}", authorization_server="${oauthIssuerUrl}"`
         );
         return res.status(HttpStatus.UNAUTHORIZED).json({
           jsonrpc: '2.0',
@@ -129,10 +151,20 @@ export class MCPController {
       // If it's an authentication error, ensure proper WWW-Authenticate header
       const err = error as { response?: { statusCode?: number }; message?: string };
       if (err.response?.statusCode === 401 || err.message?.includes('Unauthorized')) {
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        const mcpServerUrl = this.normalizeUrl(
+          this.configService.get<string>('MCP_SERVER_URL') ||
+          'https://expense-tracker.pntr.dev/mcp'
+        );
+
+        const oauthIssuerUrl = this.normalizeUrl(
+          this.configService.get<string>('OAUTH_ISSUER_URL') ||
+          this.configService.get<string>('FRONTEND_URL') ||
+          'http://localhost:3000'
+        );
+
         res.setHeader(
           'WWW-Authenticate',
-          `Bearer resource="https://expense-tracker.pntr.dev/mcp", authorization_server="${frontendUrl}"`
+          `Bearer resource="${mcpServerUrl}", authorization_server="${oauthIssuerUrl}"`
         );
         return res.status(HttpStatus.UNAUTHORIZED).json({
           jsonrpc: '2.0',

@@ -6,20 +6,30 @@ import { ConfigService } from '@nestjs/config';
 export class OauthDiscoveryController {
   constructor(private readonly configService: ConfigService) {}
 
+  // Helper to normalize URLs by removing trailing slashes
+  private normalizeUrl(url: string): string {
+    return url.replace(/\/+$/, '');
+  }
+
   // OAuth 2.0 Authorization Server Metadata
   // RFC 8414: https://www.rfc-editor.org/rfc/rfc8414.txt
   @Get('/.well-known/oauth-authorization-server')
   @Header('Cache-Control', 'no-store')
   @Header('Content-Type', 'application/json')
   async getAuthorizationServerMetadata(@Res() res: Response) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    // Use OAUTH_ISSUER_URL or fallback to FRONTEND_URL
+    const oauthIssuerUrl = this.normalizeUrl(
+      this.configService.get<string>('OAUTH_ISSUER_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:3000'
+    );
 
     const metadata = {
       // Authorization Server
-      issuer: frontendUrl,
-      authorization_endpoint: `${frontendUrl}/oauth/authorize`,
-      token_endpoint: `${frontendUrl}/oauth/token`,
-      registration_endpoint: `${frontendUrl}/oauth/register`,
+      issuer: oauthIssuerUrl,
+      authorization_endpoint: `${oauthIssuerUrl}/oauth/authorize`,
+      token_endpoint: `${oauthIssuerUrl}/oauth/token`,
+      registration_endpoint: `${oauthIssuerUrl}/oauth/register`,
 
       // Supported response types
       response_types_supported: ['code'],
@@ -59,15 +69,25 @@ export class OauthDiscoveryController {
   @Header('Cache-Control', 'no-store')
   @Header('Content-Type', 'application/json')
   async getProtectedResourceMetadata(@Res() res: Response) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const mcpServerUrl = `${frontendUrl}/mcp`; // This should match your MCP server URL
+    // MCP Resource Server URL - separate from OAuth Authorization Server
+    const mcpServerUrl = this.normalizeUrl(
+      this.configService.get<string>('MCP_SERVER_URL') ||
+      'https://expense-tracker.pntr.dev/mcp'
+    );
+
+    // OAuth Authorization Server URL (issuer)
+    const oauthIssuerUrl = this.normalizeUrl(
+      this.configService.get<string>('OAUTH_ISSUER_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:3000'
+    );
 
     const metadata = {
-      // Resource Server
+      // Resource Server - the MCP server
       resource: mcpServerUrl,
 
-      // Authorization Server
-      authorization_servers: [frontendUrl],
+      // Authorization Server - the OAuth issuer
+      authorization_servers: [oauthIssuerUrl],
 
       // Supported scopes
       scopes_supported: [
@@ -82,8 +102,8 @@ export class OauthDiscoveryController {
       // Bearer authentication methods
       bearer_auth_methods_supported: ['header'],
 
-      // Resource documentation
-      resource_documentation: `${frontendUrl}/docs/mcp`
+      // Resource documentation - use MCP server domain
+      resource_documentation: `${mcpServerUrl.replace('/mcp', '')}/docs/mcp`
     };
 
     return res.status(HttpStatus.OK).json(metadata);
