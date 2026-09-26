@@ -33,6 +33,6 @@ import { OAuthGuard } from './oauth.guard';
   ],
   controllers: [AuthController, OAuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, OAuthGuard],
-  exports: [AuthService, OAuthGuard],
+  exports: [AuthService, OAuthGuard, MongooseModule],
 })
 export class AuthModule { }
