@@ -25,11 +25,12 @@ import { mcpConfig } from './config/mcp.config';
     SecurityModule,
     forwardRef(() => ToolsModule),
   ],
-  controllers: [MCPController],
+  controllers: [MCPController, OauthDiscoveryController],
   providers: [
     MCPService,
     HttpTransport,
     SSETransport,
+    McpAuthExceptionFilter,
   ],
   exports: [MCPService, HttpTransport, SSETransport],
 })

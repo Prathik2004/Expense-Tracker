@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, UseGuards, UseFilters, HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { MCPService } from './mcp.service';
 import { McpAuthGuard } from './auth/mcp-auth.guard';
@@ -11,6 +11,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { OAuthClient, OAuthClientDocument } from '../schemas/oauth-client.schema';
 import * as crypto from 'crypto';
+import { McpAuthExceptionFilter } from './filters/mcp-auth-exception.filter';
 
 interface AuthenticatedRequest extends Request {
   user: UserPayload;
@@ -18,6 +19,7 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('mcp')
 @UseGuards(McpAuthGuard, ScopeGuard)
+@UseFilters(McpAuthExceptionFilter)
 export class MCPController {
   constructor(
     private readonly mcpService: MCPService,
@@ -90,16 +92,59 @@ export class MCPController {
   }
 
   @Get('resources/list')
-  async listResources(@Req() req: AuthenticatedRequest) {
-    return this.mcpService.listResources(req.user);
+  async listResources(@Req() req: AuthenticatedRequest, @Res() res: Response) {
+    try {
+      return this.mcpService.listResources(req.user);
+    } catch (error: unknown) {
+      // If it's an authentication error, ensure proper WWW-Authenticate header
+      const err = error as { response?: { statusCode?: number }; message?: string };
+      if (err.response?.statusCode === 401 || err.message?.includes('Unauthorized')) {
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        res.setHeader(
+          'WWW-Authenticate',
+          `Bearer resource="https://expense-tracker.pntr.dev/mcp", authorization_server="${frontendUrl}"`
+        );
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32603,
+            message: 'Unauthorized: Invalid or missing access token',
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   @Post('resources/read')
   async readResource(
     @Body('uri') uri: string,
     @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
   ) {
-    return this.mcpService.readResource(uri, req.user);
+    try {
+      return this.mcpService.readResource(uri, req.user);
+    } catch (error: unknown) {
+      // If it's an authentication error, ensure proper WWW-Authenticate header
+      const err = error as { response?: { statusCode?: number }; message?: string };
+      if (err.response?.statusCode === 401 || err.message?.includes('Unauthorized')) {
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        res.setHeader(
+          'WWW-Authenticate',
+          `Bearer resource="https://expense-tracker.pntr.dev/mcp", authorization_server="${frontendUrl}"`
+        );
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32603,
+            message: 'Unauthorized: Invalid or missing access token',
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   @Get('sse')
