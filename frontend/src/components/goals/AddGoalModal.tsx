@@ -86,7 +86,7 @@ export function AddGoalModal({ isOpen, onClose, onSuccess }: AddGoalProps) {
 
                     <div className="space-y-2">
                         <Label htmlFor="bucket">Bucket</Label>
-                        <Select value={bucket} onValueChange={(val) => setBucket(val)}>
+                        <Select value={bucket} onValueChange={(val) => setBucket(val ?? '')}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select bucket" />
                             </SelectTrigger>
