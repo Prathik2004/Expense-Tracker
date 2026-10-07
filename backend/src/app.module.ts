@@ -24,6 +24,15 @@ import { LiquidFundsModule } from './liquid-funds/liquid-funds.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        // Connection options for production reliability
+        ...(configService.get<string>('NODE_ENV') === 'production' ? {
+          serverSelectionTimeoutMS: 5000, // 5 second timeout to fail fast
+          socketTimeoutMS: 45000, // 45 second socket timeout
+          connectTimeoutMS: 10000, // 10 second initial connection timeout
+          maxPoolSize: 10, // Maintain up to 10 socket connections
+          retryWrites: true,
+          retryReads: true,
+        } : {}),
       }),
       inject: [ConfigService],
     }),
