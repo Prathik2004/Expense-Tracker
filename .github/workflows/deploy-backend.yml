@@ -39,7 +39,9 @@ jobs:
           cp -r dist ../deploy/dist
           cp package.json ../deploy/package.json
           cp package-lock.json ../deploy/package-lock.json
-          cp .npmrc ../deploy/.npmrc
+          if [ -f .npmrc ]; then
+            cp .npmrc ../deploy/.npmrc
+          fi
       - name: Upload deployment artifact
         uses: actions/upload-artifact@v7
         with:
