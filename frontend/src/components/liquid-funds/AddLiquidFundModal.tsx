@@ -174,7 +174,12 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
                             value={bucket}
                             onChange={(e) => setBucket(e.target.value)}
                             required
+                            disabled={!!goal}
+                            className={goal ? "bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed" : ""}
                         />
+                        {goal && (
+                            <p className="text-xs text-zinc-500">Bucket is auto-filled from the selected goal</p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -207,22 +212,24 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="goalId">Goal / Trip (Optional)</Label>
-                        <Select value={goalId || ""} onValueChange={(val) => handleGoalChange(val)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select goal (optional)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="">No Goal</SelectItem>
-                                {goals.map((g) => (
-                                    <SelectItem key={g._id} value={g._id}>
-                                        {g.title} ({g.bucket})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {!goal && (
+                        <div className="space-y-2">
+                            <Label htmlFor="goalId">Goal / Trip (Optional)</Label>
+                            <Select value={goalId || ""} onValueChange={(val) => handleGoalChange(val)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select goal (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">No Goal</SelectItem>
+                                    {goals.map((g) => (
+                                        <SelectItem key={g._id} value={g._id}>
+                                            {g.title} ({g.bucket})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label htmlFor="notes">Notes (Optional)</Label>
