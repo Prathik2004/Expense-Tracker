@@ -65,7 +65,7 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
         }
     };
 
-    const handleGoalChange = (selectedGoalId: string) => {
+    const handleGoalChange = (selectedGoalId: string | null) => {
         setGoalId(selectedGoalId);
         const selectedGoal = goals.find(g => g._id === selectedGoalId);
         if (selectedGoal) {
