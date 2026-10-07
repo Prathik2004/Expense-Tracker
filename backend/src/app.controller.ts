@@ -32,10 +32,14 @@ export class AppController {
   async warmup() {
     // Force a quick DB connection test
     try {
-      await this.connection.db.admin().ping();
+      if (!this.connection.db) {
+        return { status: 'error', error: 'Database not connected', timestamp: new Date().toISOString() };
+      }
+      const db = this.connection.db;
+      await db.admin().ping();
       return { status: 'warmed', timestamp: new Date().toISOString() };
     } catch (error) {
-      return { status: 'error', error: error.message, timestamp: new Date().toISOString() };
+      return { status: 'error', error: (error as Error).message, timestamp: new Date().toISOString() };
     }
   }
 }
