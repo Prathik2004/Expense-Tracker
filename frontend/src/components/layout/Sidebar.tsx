@@ -14,7 +14,7 @@ import {
     Wallet,
     BarChart3,
     HandCoins,
-    Shield
+    DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -26,6 +26,7 @@ const navItems = [
     { href: '/portfolio', label: 'Portfolio', icon: BarChart3 },
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
+    { href: '/liquid-funds', label: 'Liquid Funds', icon: DollarSign },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
 ];
 

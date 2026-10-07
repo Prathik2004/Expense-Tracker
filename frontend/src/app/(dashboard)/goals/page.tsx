@@ -6,16 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
-import { AddFundsModal } from "@/components/goals/AddFundsModal";
-import { GoalContributionsList } from "@/components/goals/GoalContributionsList";
-import { Loader2, Plus, Target, Trash2, List } from "lucide-react";
+import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
+import { GoalDetailsModal } from "@/components/goals/GoalDetailsModal";
+import { Loader2, Plus, Target, Trash2, List, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
 
-    // Add Funds Modal state
+    // Add Liquid Fund Modal state
     const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState<any>(null);
 
@@ -23,8 +23,13 @@ export default function GoalsPage() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedDetailsGoal, setSelectedDetailsGoal] = useState<any>(null);
 
+    // Summary state
+    const [summary, setSummary] = useState({ totalTargets: 0, totalAllocated: 0, stillRequired: 0 });
+    const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+
     useEffect(() => {
         fetchGoals();
+        fetchSummary();
     }, []);
 
     const fetchGoals = async () => {
@@ -38,11 +43,23 @@ export default function GoalsPage() {
         }
     };
 
+    const fetchSummary = async () => {
+        try {
+            const res = await api.get("/goals/summary");
+            setSummary(res.data);
+        } catch (err) {
+            console.error("Failed to fetch goals summary", err);
+        } finally {
+            setIsSummaryLoading(false);
+        }
+    };
+
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this goal?")) return;
         try {
             await api.delete(`/goals/${id}`);
             setGoals(goals.filter((g) => g._id !== id));
+            fetchSummary();
         } catch (err) {
             console.error("Failed to delete goal", err);
         }
@@ -66,6 +83,20 @@ export default function GoalsPage() {
         });
     };
 
+    const getStatusConfig = (status: string) => {
+        switch (status) {
+            case 'FUNDED':
+                return { icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', label: 'FUNDED' };
+            case 'OVERDUE':
+                return { icon: AlertTriangle, color: 'text-red-600 dark:text-red-500', bg: 'bg-red-100 dark:bg-red-900/30', label: 'OVERDUE' };
+            case 'SET_TARGET':
+                return { icon: Clock, color: 'text-amber-600 dark:text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', label: 'SET TARGET' };
+            case 'IN_PROGRESS':
+            default:
+                return { icon: Clock, color: 'text-blue-600 dark:text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'IN PROGRESS' };
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -80,6 +111,36 @@ export default function GoalsPage() {
                     Add Goal
                 </Button>
             </div>
+
+            {/* Summary Cards */}
+            {!isSummaryLoading && (
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Total Targets</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">₹{(summary.totalTargets ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Total Allocated</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">₹{(summary.totalAllocated ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Still Required</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-amber-600 dark:text-amber-500">₹{(summary.stillRequired ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="flex h-40 items-center justify-center">
@@ -99,9 +160,13 @@ export default function GoalsPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {goals.map((goal) => {
-                        const percent = Math.min(100, (goal.currentAmount / goal.targetAmount) * 100);
-                        const isCompleted = percent === 100;
+                        const percent = goal.progress !== null && goal.progress !== undefined
+                            ? Math.min(100, goal.progress * 100)
+                            : 0;
+                        const isCompleted = goal.status === 'FUNDED';
                         const goalName = goal.title || goal.name;
+                        const statusConfig = getStatusConfig(goal.status);
+                        const StatusIcon = statusConfig.icon;
 
                         return (
                             <Card key={goal._id} className={isCompleted ? "border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20" : ""}>
@@ -115,19 +180,31 @@ export default function GoalsPage() {
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <CardDescription>
-                                        By {formatDate(goal.deadline)}
-                                    </CardDescription>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <CardDescription>
+                                            By {formatDate(goal.deadline)}
+                                        </CardDescription>
+                                        <span
+                                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bg} ${statusConfig.color}`}
+                                        >
+                                            <StatusIcon className="w-3 h-3 mr-1" />
+                                            {statusConfig.label}
+                                        </span>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div>
                                         <div className="flex justify-between text-sm font-medium mb-1.5">
                                             <span className={isCompleted ? "text-emerald-600 dark:text-emerald-500" : ""}>
-                                                ₹{goal.currentAmount.toLocaleString('en-IN')}
+                                                ₹{(goal.allocatedAmount ?? 0).toLocaleString('en-IN')}
                                             </span>
                                             <span className="text-zinc-500">
-                                                ₹{goal.targetAmount.toLocaleString('en-IN')}
+                                                ₹{(goal.targetAmount ?? 0).toLocaleString('en-IN')}
                                             </span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                                            <span>Remaining: ₹{(goal.stillRequired ?? 0).toLocaleString('en-IN')}</span>
+                                            <span>{percent.toFixed(0)}%</span>
                                         </div>
                                         <Progress value={percent} className="h-2" />
                                     </div>
@@ -147,7 +224,7 @@ export default function GoalsPage() {
                                         onClick={() => handleOpenContribute(goal)}
                                         disabled={isCompleted}
                                     >
-                                        {isCompleted ? "Completed 🎉" : "Add Funds"}
+                                        {isCompleted ? "Funded 🎉" : "Add Funds"}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -159,17 +236,17 @@ export default function GoalsPage() {
             <AddGoalModal
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
-                onSuccess={fetchGoals}
+                onSuccess={() => { fetchGoals(); fetchSummary(); }}
             />
 
-            <AddFundsModal
+            <AddLiquidFundModal
                 isOpen={isAddFundsOpen}
                 onClose={() => setIsAddFundsOpen(false)}
-                onSuccess={fetchGoals}
+                onSuccess={() => { fetchGoals(); fetchSummary(); }}
                 goal={selectedGoal}
             />
 
-            <GoalContributionsList
+            <GoalDetailsModal
                 isOpen={isDetailsOpen}
                 onClose={() => setIsDetailsOpen(false)}
                 goal={selectedDetailsGoal}

@@ -11,7 +11,8 @@ import {
     PieChart,
     BarChart3,
     HandCoins,
-    Shield
+    Shield,
+    DollarSign
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
     { href: '/portfolio', label: 'Portfolio', icon: BarChart3 },
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
+    { href: '/liquid-funds', label: 'Liquid Funds', icon: DollarSign },
     { href: '/budgets', label: 'Budgets', icon: PieChart },
 ];
 

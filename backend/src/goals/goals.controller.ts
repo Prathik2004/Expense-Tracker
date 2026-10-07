@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { GoalsService } from './goals.service';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
@@ -19,6 +19,11 @@ export class GoalsController {
     return this.goalsService.findAll(req.user.userId);
   }
 
+  @Get('summary')
+  getGoalsSummary(@Request() req: any) {
+    return this.goalsService.getGoalsSummary(req.user.userId);
+  }
+
   @Get(':id')
   findOne(@Request() req: any, @Param('id') id: string) {
     return this.goalsService.findOne(req.user.userId, id);
@@ -32,18 +37,6 @@ export class GoalsController {
   @Delete(':id')
   remove(@Request() req: any, @Param('id') id: string) {
     return this.goalsService.remove(req.user.userId, id);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post(':id/deposit')
-  deposit(
-    @Request() req: any,
-    @Param('id') id: string,
-    @Body('amount') amount: number,
-    @Body('assetType') assetType: string,
-    @Body('notes') notes: string
-  ) {
-    return this.goalsService.deposit(req.user.userId, id, amount, assetType, notes);
   }
 
   @Get(':id/contributions')

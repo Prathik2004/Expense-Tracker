@@ -15,8 +15,8 @@ export class Goal {
     @Prop({ required: true, min: 0 })
     targetAmount: number;
 
-    @Prop({ default: 0, min: 0 })
-    currentAmount: number;
+    @Prop({ required: true })
+    bucket: string;
 
     @Prop({ required: true })
     deadline: Date;
