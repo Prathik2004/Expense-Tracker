@@ -5,7 +5,7 @@ import { Budget, BudgetDocument } from '../schemas/budget.schema';
 import { Transaction, TransactionDocument } from '../schemas/transaction.schema';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
-
+//Budget module
 @Injectable()
 export class BudgetsService {
   constructor(
