@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, ArrowUpCircle, ArrowDownCircle, Circle, X } from "lucide-react";
+import { TrendingUp, ArrowUpCircle, ArrowDownCircle, Circle, Trash2 } from "lucide-react";
 
 interface LiquidFundTransactionRowProps {
     transaction: {
@@ -98,10 +98,11 @@ export function LiquidFundTransactionRow({ transaction, onDelete }: LiquidFundTr
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                 <button
                     onClick={onDelete}
-                    className="text-destructive hover:text-destructive/80"
-                    title="Delete"
+                    className="rounded-md p-1.5 text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive/80"
+                    title="Delete transaction"
+                    aria-label="Delete transaction"
                 >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                 </button>
             </td>
         </tr>

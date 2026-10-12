@@ -9,7 +9,7 @@ import {
     LayoutDashboard,
     ArrowRightLeft,
     Target,
-    PieChart,
+    //PieChart,
     LogOut,
     Wallet,
     BarChart3,
@@ -27,7 +27,7 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/liquid-funds', label: 'Liquid Funds', icon: DollarSign },
-    { href: '/budgets', label: 'Budgets', icon: PieChart },
+    //{ href: '/budgets', label: 'Budgets', icon: PieChart },
 ];
 
 export function Sidebar() {

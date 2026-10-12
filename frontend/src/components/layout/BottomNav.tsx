@@ -8,10 +8,10 @@ import {
     LayoutDashboard,
     ArrowRightLeft,
     Target,
-    PieChart,
+    //PieChart,
     BarChart3,
     HandCoins,
-    Shield,
+    //Shield,
     DollarSign
 } from 'lucide-react';
 
@@ -22,7 +22,7 @@ const navItems = [
     { href: '/lending', label: 'Lending', icon: HandCoins },
     { href: '/goals', label: 'Goals', icon: Target },
     { href: '/liquid-funds', label: 'Liquid Funds', icon: DollarSign },
-    { href: '/budgets', label: 'Budgets', icon: PieChart },
+    // /{ href: '/budgets', label: 'Budgets', icon: PieChart },
 ];
 
 export function BottomNav() {
@@ -40,7 +40,7 @@ export function BottomNav() {
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 pb-safe z-50">
-            <div className="flex h-16 w-full overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="grid h-16 w-full grid-cols-7 px-0.5">
                 {navItems.map((item) => {
                     const isAdminItem = (item as any).adminOnly;
                     if (isAdminItem && user?.email !== 'prathik1611@gmail.com') return null;
@@ -49,10 +49,10 @@ export function BottomNav() {
                     const Icon = item.icon;
 
                     return (
-                        <Link key={item.href} href={item.href} className="flex h-full min-w-[72px] flex-1 flex-col items-center justify-center px-1">
+                        <Link key={item.href} href={item.href} className="flex h-full min-w-0 flex-col items-center justify-center px-0.5">
                             <div className={`flex flex-col items-center justify-center space-y-1 ${isActive ? 'text-primary' : 'text-zinc-500 dark:text-zinc-400'}`}>
                                 <Icon className={`w-4.5 h-4.5 ${isActive ? 'fill-primary/20' : ''}`} />
-                                <span className="text-[10px] font-medium leading-none whitespace-nowrap">{item.label}</span>
+                                <span className="max-w-full truncate text-[8px] font-medium leading-none">{item.label}</span>
                             </div>
                         </Link>
                     );

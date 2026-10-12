@@ -29,14 +29,14 @@ export class GoalsController {
     return this.goalsService.findOne(req.user.userId, id);
   }
 
-  @Patch(':id')
-  update(@Request() req: any, @Param('id') id: string, @Body() updateGoalDto: UpdateGoalDto) {
-    return this.goalsService.update(req.user.userId, id, updateGoalDto);
-  }
-
   @Patch(':id/toggle-completed')
   toggleCompleted(@Request() req: any, @Param('id') id: string) {
     return this.goalsService.toggleCompleted(req.user.userId, id);
+  }
+
+  @Patch(':id')
+  update(@Request() req: any, @Param('id') id: string, @Body() updateGoalDto: UpdateGoalDto) {
+    return this.goalsService.update(req.user.userId, id, updateGoalDto);
   }
 
   @Delete(':id')

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
 import { LiquidFundTransactionRow } from "@/components/liquid-funds/LiquidFundTransactionRow";
-import { Loader2, Plus, DollarSign, Filter, RotateCcw } from "lucide-react";
+import { Loader2, Plus, DollarSign, Filter, RotateCcw, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -272,8 +272,8 @@ export default function LiquidFundsPage() {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <div className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-card md:block dark:border-zinc-800">
+                        <table className="w-full table-fixed divide-y divide-zinc-200 dark:divide-zinc-700">
                             <thead className="bg-zinc-50 dark:bg-zinc-900">
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
@@ -312,6 +312,45 @@ export default function LiquidFundsPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="space-y-3 md:hidden">
+                        {transactions.map((tx) => {
+                            const goalTitle = typeof tx.goalId === "object" ? tx.goalId?.title : null;
+                            return (
+                                <Card key={tx._id} className="rounded-xl">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="truncate font-semibold">{tx.fundName}</p>
+                                                <p className="mt-1 text-xs text-zinc-500">
+                                                    {new Date(tx.date).toLocaleDateString("en-IN", {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric"
+                                                    })}
+                                                    {goalTitle ? ` • ${goalTitle}` : ""}
+                                                </p>
+                                            </div>
+                                            <p className="shrink-0 text-right font-semibold">₹{tx.amount.toLocaleString("en-IN")}</p>
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-zinc-500 dark:border-zinc-800">
+                                            <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium dark:bg-zinc-800">{tx.transactionType}</span>
+                                            <span className="truncate">{tx.notes || "No notes"}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                onClick={() => handleDelete(tx._id)}
+                                                title="Delete transaction"
+                                                aria-label="Delete transaction"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                     <div className="flex justify-between items-center mt-4">
                         <p className="text-sm text-zinc-500">

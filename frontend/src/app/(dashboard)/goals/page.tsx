@@ -8,12 +8,16 @@ import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
 import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
 import { GoalDetailsModal } from "@/components/goals/GoalDetailsModal";
-import { Loader2, Plus, Target, Trash2, List, AlertTriangle, CheckCircle, Clock, Lock, Unlock } from "lucide-react";
+import { Loader2, Plus, Target, Trash2, List, AlertTriangle, CheckCircle, Clock, Lock, Unlock, Check, Undo2 } from "lucide-react";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [togglingGoalId, setTogglingGoalId] = useState<string | null>(null);
+    const [celebration, setCelebration] = useState<"goal" | "invest" | null>(null);
 
     // Add Liquid Fund Modal state
     const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
@@ -75,13 +79,21 @@ export default function GoalsPage() {
     };
 
     const handleToggleCompleted = async (id: string) => {
+        setTogglingGoalId(id);
         try {
             const res = await api.patch(`/goals/${id}/toggle-completed`);
             setGoals(goals.map(g => g._id === id ? { ...g, completed: res.data.completed } : g));
-            fetchGoals(); // Refresh to get updated status
-            fetchSummary();
-        } catch (err) {
+            await Promise.all([fetchGoals(), fetchSummary()]);
+            toast.success(res.data.completed ? "Goal marked as complete" : "Goal marked as incomplete");
+            if (res.data.completed) {
+                setCelebration("goal");
+                window.setTimeout(() => setCelebration(null), 4200);
+            }
+        } catch (err: any) {
             console.error("Failed to toggle goal completion", err);
+            toast.error(err.response?.data?.message || "Could not update goal status");
+        } finally {
+            setTogglingGoalId(null);
         }
     };
 
@@ -93,6 +105,15 @@ export default function GoalsPage() {
     const handleOpenDetails = (goal: any) => {
         setSelectedDetailsGoal(goal);
         setIsDetailsOpen(true);
+    };
+
+    const handleFundsSuccess = (transactionType?: "INVEST" | "RETURN" | "WITHDRAW") => {
+        fetchGoals();
+        fetchSummary();
+        if (transactionType === "INVEST") {
+            setCelebration("invest");
+            window.setTimeout(() => setCelebration(null), 1800);
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -119,6 +140,52 @@ export default function GoalsPage() {
 
     return (
         <div className="space-y-6">
+            <AnimatePresence>
+                {celebration === "goal" && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] pointer-events-none overflow-hidden bg-emerald-950/20 backdrop-blur-[2px]"
+                    >
+                        {Array.from({ length: 36 }).map((_, index) => (
+                            <motion.span
+                                key={index}
+                                initial={{ x: "50vw", y: "45vh", opacity: 1, scale: 0 }}
+                                animate={{
+                                    x: `${(index * 37) % 110 - 5}vw`,
+                                    y: `${(index * 61) % 105}vh`,
+                                    rotate: index * 47,
+                                    opacity: 0,
+                                    scale: 1
+                                }}
+                                transition={{ duration: 2.8, ease: "easeOut", delay: (index % 6) * 0.04 }}
+                                className={`absolute h-3 w-2 rounded-sm ${["bg-emerald-400", "bg-yellow-300", "bg-sky-400", "bg-pink-400"][index % 4]}`}
+                            />
+                        ))}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.7, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white px-8 py-6 text-center shadow-2xl dark:bg-zinc-900"
+                        >
+                            <div className="mb-2 text-4xl">🎉</div>
+                            <h2 className="text-2xl font-bold text-emerald-600">Goal completed!</h2>
+                            <p className="mt-1 text-sm text-zinc-500">You achieved something important.</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+                {celebration === "invest" && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 24, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                        className="fixed bottom-24 left-1/2 z-[100] -translate-x-1/2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xl md:bottom-8"
+                    >
+                        ✨ Investment added to your goal
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Financial Goals</h1>
@@ -298,9 +365,16 @@ export default function GoalsPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleToggleCompleted(goal._id)}
+                                        disabled={togglingGoalId === goal._id}
                                         title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
                                     >
-                                        {isCompleted ? "✓" : "○"}
+                                        {togglingGoalId === goal._id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : isCompleted ? (
+                                            <Undo2 className="h-4 w-4" />
+                                        ) : (
+                                            <Check className="h-4 w-4" />
+                                        )}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -318,7 +392,7 @@ export default function GoalsPage() {
             <AddLiquidFundModal
                 isOpen={isAddFundsOpen}
                 onClose={() => setIsAddFundsOpen(false)}
-                onSuccess={() => { fetchGoals(); fetchSummary(); }}
+                onSuccess={handleFundsSuccess}
                 goal={selectedGoal}
             />
 

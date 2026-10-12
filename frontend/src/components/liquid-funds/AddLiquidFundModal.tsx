@@ -26,7 +26,7 @@ interface GoalOption {
 interface AddLiquidFundProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (transactionType?: "INVEST" | "RETURN" | "WITHDRAW") => void;
     goal?: GoalOption | null;
     transaction?: {
         _id: string;
@@ -151,7 +151,7 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal, transacti
             };
             if (transaction) await api.patch(`/liquid-funds/${transaction._id}`, payload);
             else await api.post("/liquid-funds", payload);
-            onSuccess();
+            onSuccess(transactionType);
             onClose();
             // Reset form
             setDate(new Date().toISOString().split('T')[0]);
