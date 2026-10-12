@@ -321,7 +321,13 @@ export default function LiquidFundsPage() {
                                     <CardContent className="p-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <p className="truncate font-semibold">{tx.fundName}</p>
+                                                <p
+                                                    className="truncate font-semibold"
+                                                    title={tx.fundName}
+                                                    aria-label={tx.fundName}
+                                                >
+                                                    {tx.fundName}
+                                                </p>
                                                 <p className="mt-1 text-xs text-zinc-500">
                                                     {new Date(tx.date).toLocaleDateString("en-IN", {
                                                         day: "numeric",

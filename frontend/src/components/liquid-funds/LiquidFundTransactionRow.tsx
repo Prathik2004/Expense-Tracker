@@ -70,8 +70,14 @@ export function LiquidFundTransactionRow({ transaction, onDelete }: LiquidFundTr
             <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-700 dark:text-zinc-300">
                 {formatDate(transaction.date)}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                {transaction.fundName}
+            <td className="max-w-0 px-6 py-4 text-sm font-medium">
+                <span
+                    className="block truncate"
+                    title={transaction.fundName}
+                    aria-label={transaction.fundName}
+                >
+                    {transaction.fundName}
+                </span>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-400">
                 {transaction.bucket}

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Loader2, IndianRupee, PieChart, ArrowUpRight, ArrowDownRight, Edit3, Eye, EyeOff } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, IndianRupee, PieChart, ArrowUpRight, ArrowDownRight, Edit3, Eye, EyeOff, Plus, RefreshCw, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
 import { UpdateValuationModal } from "@/components/dashboard/UpdateValuationModal";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { LogInvestedValuesForm } from "@/components/portfolio/LogInvestedValuesForm";
@@ -67,6 +68,7 @@ export default function PortfolioPage() {
     const totalInvested = summary?.totalInvested || 0;
     const portfolioValue = summary?.portfolioValue || 0;
     const hasValuation = portfolioValue > 0;
+    const totalHoldings = holdings.reduce((total, holding) => total + (holding.amount || 0), 0);
 
     let roi = 0;
     let absoluteGain = 0;
@@ -77,18 +79,32 @@ export default function PortfolioPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
-                    <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                        Track your investments and returns.
-                    </p>
+        <div className="space-y-6 pb-4">
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 p-5 text-white shadow-lg sm:p-7">
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+                <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-purple-100">Your investment dashboard</p>
+                        <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Portfolio</h1>
+                        <p className="mt-2 max-w-md text-sm text-purple-100">
+                            See how your money is allocated and keep your current valuation up to date.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" className="bg-white/15 text-white hover:bg-white/25" onClick={() => setIsValuationOpen(true)}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Update value
+                        </Button>
+                        <Button variant="secondary" className="bg-white text-purple-700 hover:bg-purple-50" onClick={() => document.getElementById("portfolio-log-form")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Log investment
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Card className="border-0 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium tracking-tight">Total Invested</CardTitle>
                         <IndianRupee className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -103,7 +119,7 @@ export default function PortfolioPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-zinc-950">
+                <Card className="border-purple-200 bg-purple-50/60 shadow-sm dark:border-purple-900/50 dark:bg-purple-950/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium tracking-tight text-purple-700 dark:text-purple-400">Current Valuation</CardTitle>
                         <div className="flex items-center space-x-1">
@@ -133,10 +149,10 @@ export default function PortfolioPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-0 shadow-sm sm:col-span-2 lg:col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium tracking-tight">Overall Return</CardTitle>
-                        <PieChart className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                        <TrendingUp className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-baseline gap-2">
@@ -159,27 +175,44 @@ export default function PortfolioPage() {
                 </Card>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-3 items-start">
+            <div className="grid items-start gap-5 lg:grid-cols-5">
                 {/* Left Column: Log Values & Breakdown */}
-                <div className="lg:col-span-1 space-y-4">
-                    <LogInvestedValuesForm onSuccess={fetchData} />
+                <div className="space-y-5 lg:col-span-2">
+                    <div id="portfolio-log-form">
+                        <LogInvestedValuesForm onSuccess={fetchData} />
+                    </div>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium tracking-tight">Investment Breakdown</CardTitle>
+                    <Card className="border-0 shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Allocation</CardTitle>
+                            <CardDescription>Where your invested money is currently distributed</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 {holdings.length === 0 ? (
-                                    <p className="text-sm text-zinc-500">No investments logged yet.</p>
+                                    <div className="rounded-lg border border-dashed p-5 text-center">
+                                        <PieChart className="mx-auto mb-2 h-7 w-7 text-zinc-300" />
+                                        <p className="text-sm font-medium">No investments logged yet</p>
+                                        <p className="mt-1 text-xs text-zinc-500">Use the form above to add your starting balances.</p>
+                                    </div>
                                 ) : (
                                     holdings.map((h, i) => (
-                                        <div key={i} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                                <span className="text-sm font-medium">{h.category}</span>
+                                        <div key={i} className="space-y-2">
+                                            <div className="flex items-center justify-between gap-3 text-sm">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-purple-500" />
+                                                    <span className="truncate font-medium">{h.category}</span>
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-2">
+                                                    <span className="text-xs text-zinc-500">
+                                                        {totalHoldings ? ((h.amount / totalHoldings) * 100).toFixed(1) : "0.0"}%
+                                                    </span>
+                                                    <span className="font-semibold">{formatCurrency(h.amount)}</span>
+                                                </div>
                                             </div>
-                                            <span className="text-sm font-medium">{formatCurrency(h.amount)}</span>
+                                            <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                                                <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-500" style={{ width: `${totalHoldings ? Math.min(100, (h.amount / totalHoldings) * 100) : 0}%` }} />
+                                            </div>
                                         </div>
                                     ))
                                 )}
@@ -189,8 +222,21 @@ export default function PortfolioPage() {
                 </div>
 
                 {/* Right Column: Transactions */}
-                <div className="lg:col-span-2">
-                    <RecentTransactions transactions={investments} />
+                <div className="lg:col-span-3">
+                    <Card className="border-0 shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between pb-3">
+                            <div>
+                                <CardTitle className="text-base">Recent investments</CardTitle>
+                                <CardDescription className="mt-1">Your latest portfolio activity</CardDescription>
+                            </div>
+                            <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                                {investments.length} recent
+                            </span>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <RecentTransactions transactions={investments} />
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
