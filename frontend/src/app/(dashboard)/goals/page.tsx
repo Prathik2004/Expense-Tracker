@@ -326,6 +326,7 @@ export default function GoalsPage() {
                 isOpen={isDetailsOpen}
                 onClose={() => setIsDetailsOpen(false)}
                 goal={selectedDetailsGoal}
+                onSuccess={() => { fetchGoals(); fetchSummary(); }}
             />
         </div>
     );

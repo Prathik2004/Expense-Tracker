@@ -45,21 +45,9 @@ export class LiquidFundsController {
     return this.liquidFundsService.getUserGoalsForDropdown(req.user.userId);
   }
 
-  @Get(':id')
-  findOne(@Request() req: any, @Param('id') id: string) {
-    return this.liquidFundsService.findOne(req.user.userId, id);
-  }
-
-  @Patch(':id')
-  async update(@Request() req: any, @Param('id') id: string, @Body() updateLiquidFundDto: UpdateLiquidFundDto) {
-    // Validate new goalId if being updated
-    await this.validateGoalNotCompleted(req.user.userId, updateLiquidFundDto.goalId);
-    return this.liquidFundsService.update(req.user.userId, id, updateLiquidFundDto);
-  }
-
-  @Delete(':id')
-  remove(@Request() req: any, @Param('id') id: string) {
-    return this.liquidFundsService.remove(req.user.userId, id);
+  @Get('filter-options')
+  getFilterOptions(@Request() req: any) {
+    return this.liquidFundsService.getFilterOptions(req.user.userId);
   }
 
   @Get('goals/allocation')
@@ -80,5 +68,22 @@ export class LiquidFundsController {
   @Get('goals/summary')
   getGoalsSummary(@Request() req: any) {
     return this.liquidFundsService.getGoalsSummary(req.user.userId);
+  }
+
+  @Get(':id')
+  findOne(@Request() req: any, @Param('id') id: string) {
+    return this.liquidFundsService.findOne(req.user.userId, id);
+  }
+
+  @Patch(':id')
+  async update(@Request() req: any, @Param('id') id: string, @Body() updateLiquidFundDto: UpdateLiquidFundDto) {
+    // Validate new goalId if being updated
+    await this.validateGoalNotCompleted(req.user.userId, updateLiquidFundDto.goalId);
+    return this.liquidFundsService.update(req.user.userId, id, updateLiquidFundDto);
+  }
+
+  @Delete(':id')
+  remove(@Request() req: any, @Param('id') id: string) {
+    return this.liquidFundsService.remove(req.user.userId, id);
   }
 }

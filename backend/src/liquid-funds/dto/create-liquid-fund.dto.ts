@@ -13,8 +13,9 @@ export class CreateLiquidFundDto {
   @IsString()
   fundName: string;
 
+  @IsOptional()
   @IsString()
-  bucket: string;
+  bucket?: string;
 
   @IsEnum(LiquidFundTransactionType)
   transactionType: LiquidFundTransactionType;
@@ -23,9 +24,8 @@ export class CreateLiquidFundDto {
   @Min(0.01)
   amount: number;
 
-  @IsOptional()
   @IsMongoId()
-  goalId?: string;
+  goalId: string;
 
   @IsOptional()
   @IsString()

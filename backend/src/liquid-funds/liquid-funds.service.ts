@@ -39,22 +39,16 @@ export class LiquidFundsService {
   ) {}
 
   async create(userId: string, createLiquidFundDto: CreateLiquidFundDto): Promise<LiquidFundTransactionDocument> {
-    // Validate goal if provided
-    if (createLiquidFundDto.goalId) {
-      const goal = await this.goalModel.findOne({ _id: new Types.ObjectId(createLiquidFundDto.goalId), userId: new Types.ObjectId(userId) } as any).exec();
-      if (!goal) {
-        throw new BadRequestException('Goal not found or does not belong to user');
-      }
-      // Validate bucket matches goal's bucket
-      if (createLiquidFundDto.bucket !== goal.bucket) {
-        throw new BadRequestException('Transaction bucket must match the goal bucket');
-      }
+    const goal = await this.goalModel.findOne({ _id: new Types.ObjectId(createLiquidFundDto.goalId), userId: new Types.ObjectId(userId) } as any).exec();
+    if (!goal) {
+      throw new BadRequestException('Goal not found or does not belong to user');
     }
 
     const createdTransaction = new this.liquidFundModel({
       ...createLiquidFundDto,
+      bucket: createLiquidFundDto.bucket || goal.bucket || goal.title,
       userId: new Types.ObjectId(userId),
-      goalId: createLiquidFundDto.goalId ? new Types.ObjectId(createLiquidFundDto.goalId) : undefined,
+      goalId: new Types.ObjectId(createLiquidFundDto.goalId),
     });
     return createdTransaction.save();
   }
@@ -143,9 +137,7 @@ export class LiquidFundsService {
       if (!goal) {
         throw new BadRequestException('Goal not found or does not belong to user');
       }
-      // Validate bucket matches goal's bucket
-      const bucket = updateLiquidFundDto.bucket || existingTransaction.bucket;
-      if (bucket !== goal.bucket) {
+      if (updateLiquidFundDto.bucket && goal.bucket && updateLiquidFundDto.bucket !== goal.bucket) {
         throw new BadRequestException('Transaction bucket must match the goal bucket');
       }
     }
@@ -188,19 +180,20 @@ export class LiquidFundsService {
    * - stillRequired = max(target - totalFunded, 0)
    * - progress = totalFunded / target
    */
-  async calculateGoalMetrics(userId: string, goalId: string, bucket: string, targetAmount: number): Promise<{
+  async calculateGoalMetrics(userId: string, goalId: string, bucket: string | undefined, targetAmount: number): Promise<{
     totalFunded: number;
     withdrawn: number;
     balanceAvailable: number;
     stillRequired: number;
     progress: number | null;
   }> {
-    const transactions = await this.liquidFundModel.find({
+    const transactionFilter: any = {
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
-      bucket: bucket,
       transactionType: { $in: [CreateLiquidFundTransactionType.INVEST, CreateLiquidFundTransactionType.RETURN, CreateLiquidFundTransactionType.WITHDRAW] }
-    } as any).exec();
+    };
+    if (bucket) transactionFilter.bucket = bucket;
+    const transactions = await this.liquidFundModel.find(transactionFilter).exec();
 
     let totalFunded = 0;
     let withdrawn = 0;
@@ -262,8 +255,6 @@ export class LiquidFundsService {
       status = '';
     } else if (goal.completed) {
       status = 'COMPLETED';
-    } else if (!goal.bucket || goal.bucket.trim() === '') {
-      status = 'SET_BUCKET';
     } else if (balanceAvailable < 0) {
       status = 'OVER-WITHDRAWN';
     } else if (!goal.targetAmount || goal.targetAmount <= 0) {
@@ -277,7 +268,7 @@ export class LiquidFundsService {
     return {
       goalId: goal._id.toString(),
       goalName: goal.title,
-      bucket: goal.bucket,
+      bucket: goal.bucket || '',
       targetAmount: goal.targetAmount,
       allocatedAmount: balanceAvailable, // Backward-compatible alias
       totalFunded,
@@ -367,7 +358,7 @@ export class LiquidFundsService {
   /**
    * Get user's goals for dropdown selection in liquid fund transaction form
    */
-  async getUserGoalsForDropdown(userId: string): Promise<{ _id: string; title: string; bucket: string; targetAmount: number }[]> {
+  async getUserGoalsForDropdown(userId: string): Promise<{ _id: string; title: string; bucket?: string; targetAmount: number }[]> {
     const goals = await this.goalModel.find(
       { userId: new Types.ObjectId(userId) } as any,
       { _id: 1, title: 1, bucket: 1, targetAmount: 1 }
@@ -381,6 +372,21 @@ export class LiquidFundsService {
     }));
   }
 
+  async getFilterOptions(userId: string): Promise<{ fundNames: string[]; goals: { _id: string; title: string }[] }> {
+    const [fundNames, goals] = await Promise.all([
+      this.liquidFundModel.distinct('fundName', { userId: new Types.ObjectId(userId) } as any),
+      this.goalModel.find(
+        { userId: new Types.ObjectId(userId) } as any,
+        { _id: 1, title: 1 }
+      ).sort({ title: 1 }).lean().exec()
+    ]);
+
+    return {
+      fundNames: fundNames.filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      goals: goals.map(goal => ({ _id: goal._id.toString(), title: goal.title }))
+    };
+  }
+
   /**
    * Get transactions associated with a specific goal (for goal detail view)
    */
@@ -391,7 +397,6 @@ export class LiquidFundsService {
     return this.liquidFundModel.find({
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
-      bucket: goal.bucket
     } as any).sort({ date: -1 }).exec();
   }
 }

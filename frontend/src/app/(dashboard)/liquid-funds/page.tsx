@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
 import { LiquidFundTransactionRow } from "@/components/liquid-funds/LiquidFundTransactionRow";
-import { Loader2, Plus, Trash2, List, Filter, DollarSign, BarChart3 } from "lucide-react";
+import { Loader2, Plus, DollarSign, Filter, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -19,18 +19,29 @@ export default function LiquidFundsPage() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [filters, setFilters] = useState({
         fundName: '',
-        bucket: '',
+        goalId: '',
         transactionType: '',
         startDate: '',
         endDate: ''
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [filterOptions, setFilterOptions] = useState<{ fundNames: string[]; goals: { _id: string; title: string }[] }>({ fundNames: [], goals: [] });
 
     useEffect(() => {
         fetchTransactions();
         fetchSummary();
+        fetchFilterOptions();
     }, [filters, currentPage]);
+
+    const fetchFilterOptions = async () => {
+        try {
+            const res = await api.get("/liquid-funds/filter-options");
+            setFilterOptions(res.data);
+        } catch (err) {
+            console.error("Failed to fetch liquid fund filter options", err);
+        }
+    };
 
     const fetchTransactions = async () => {
         try {
@@ -84,6 +95,19 @@ export default function LiquidFundsPage() {
     const handleDateChange = (field: string, date: string) => {
         setFilters(prev => ({ ...prev, [field]: date }));
         setCurrentPage(1); // Reset to first page when filtering
+    };
+
+    const hasActiveFilters = Object.values(filters).some(Boolean);
+
+    const clearFilters = () => {
+        setFilters({
+            fundName: '',
+            goalId: '',
+            transactionType: '',
+            startDate: '',
+            endDate: ''
+        });
+        setCurrentPage(1);
     };
 
     return (
@@ -141,61 +165,88 @@ export default function LiquidFundsPage() {
             </div>
 
             {/* Filters */}
-            <Card className="mb-4">
-                <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                        <Button variant="outline" size="icon" onClick={() => setIsAddOpen(true)}>
-                            <Plus className="w-4 h-4" />
-                        </Button>
-                        <CardTitle className="text-lg font-semibold">Filter Transactions</CardTitle>
+            <Card className="overflow-hidden border-zinc-200/80 shadow-sm dark:border-zinc-800">
+                <CardHeader className="border-b bg-zinc-50/70 px-4 py-4 dark:bg-zinc-900/40 sm:px-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                                <Filter className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-base font-semibold">Filter transactions</CardTitle>
+                                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                    Narrow results by fund, goal, type, or date
+                                </p>
+                            </div>
+                        </div>
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="w-fit gap-2 text-zinc-500 hover:text-foreground"
+                                onClick={clearFilters}
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Clear filters
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                <CardContent className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+                    <div className="space-y-1.5">
                         <Label htmlFor="fundName-filter">Fund Name</Label>
-                        <Input
-                            id="fundName-filter"
-                            placeholder="Filter by fund name..."
-                            value={filters.fundName}
-                            onChange={(e) => handleFilterChange('fundName', e.target.value)}
-                        />
+                        <Select value={filters.fundName || "all"} onValueChange={(val) => handleFilterChange('fundName', val === "all" ? '' : val ?? '')}>
+                            <SelectTrigger id="fundName-filter" className="w-full bg-background">
+                                <SelectValue placeholder="All funds" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All funds</SelectItem>
+                                {filterOptions.fundNames.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="bucket-filter">Bucket</Label>
-                        <Input
-                            id="bucket-filter"
-                            placeholder="Filter by bucket..."
-                            value={filters.bucket}
-                            onChange={(e) => handleFilterChange('bucket', e.target.value)}
-                        />
+                    <div className="space-y-1.5">
+                        <Label htmlFor="goal-filter">Goal Name</Label>
+                        <Select value={filters.goalId || "all"} onValueChange={(val) => handleFilterChange('goalId', val === "all" ? '' : val ?? '')}>
+                            <SelectTrigger id="goal-filter" className="w-full bg-background">
+                                <SelectValue placeholder="All goals" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All goals</SelectItem>
+                                {filterOptions.goals.map((goal) => <SelectItem key={goal._id} value={goal._id}>{goal.title}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="transactionType-filter">Transaction Type</Label>
-                        <Select value={filters.transactionType} onValueChange={(val) => handleFilterChange('transactionType', val ?? '')}>
-                            <SelectTrigger>
+                        <Select value={filters.transactionType || "all"} onValueChange={(val) => handleFilterChange('transactionType', val === "all" ? '' : val ?? '')}>
+                            <SelectTrigger id="transactionType-filter" className="w-full bg-background">
                                 <SelectValue placeholder="All Types" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Types</SelectItem>
+                                <SelectItem value="all">All Types</SelectItem>
                                 <SelectItem value="INVEST">Invest</SelectItem>
                                 <SelectItem value="RETURN">Return</SelectItem>
                                 <SelectItem value="WITHDRAW">Withdraw</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="startDate-filter">Start Date</Label>
                         <Input
                             id="startDate-filter"
+                            className="bg-background"
                             type="date"
                             value={filters.startDate}
                             onChange={(e) => handleDateChange('startDate', e.target.value)}
                         />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="endDate-filter">End Date</Label>
                         <Input
                             id="endDate-filter"
+                            className="bg-background"
                             type="date"
                             value={filters.endDate}
                             onChange={(e) => handleDateChange('endDate', e.target.value)}

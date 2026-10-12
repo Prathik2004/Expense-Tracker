@@ -8,6 +8,7 @@ import { Loader2, TrendingUp, History, Coins, AlertTriangle, CheckCircle, Clock 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
 
 interface GoalDetailsModalProps {
     isOpen: boolean;
@@ -21,11 +22,12 @@ interface GoalDetailsModalProps {
         stillRequired: number;
         progress: number | null;
         status: string;
-        bucket: string;
+        bucket?: string;
         deadline: string;
         category?: string;
         icon?: string;
     } | null;
+    onSuccess?: () => void;
 }
 
 const getStatusConfig = (status: string) => {
@@ -55,9 +57,10 @@ const getTypeConfig = (type: string) => {
     }
 };
 
-export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProps) {
+export function GoalDetailsModal({ isOpen, onClose, goal, onSuccess }: GoalDetailsModalProps) {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
     useEffect(() => {
         if (isOpen && goal) {
@@ -75,6 +78,12 @@ export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProp
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleTransactionUpdated = () => {
+        setEditingTransaction(null);
+        fetchTransactions();
+        onSuccess?.();
     };
 
     if (!goal) return null;
@@ -97,7 +106,6 @@ export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProp
                         <DialogTitle>{goalName}</DialogTitle>
                     </div>
                     <DialogDescription className="pt-1.5 flex items-center gap-2">
-                        <span>Bucket: <span className="font-medium">{goal.bucket}</span></span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bg} ${statusConfig.color}`}>
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {statusConfig.label}
@@ -128,10 +136,6 @@ export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProp
                             <div>
                                 <span className="text-zinc-500">Target Date</span>
                                 <div className="font-medium">{format(new Date(goal.deadline), "MMM d, yyyy")}</div>
-                            </div>
-                            <div>
-                                <span className="text-zinc-500">Bucket</span>
-                                <div className="font-medium">{goal.bucket}</div>
                             </div>
                         </div>
                     </div>
@@ -179,8 +183,17 @@ export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProp
                                                         </p>
                                                     )}
                                                 </div>
-                                                <div className={`text-right pl-3 shrink-0 ${typeConfig.color} font-semibold`}>
-                                                    {typeConfig.sign}₹{tx.amount.toLocaleString('en-IN')}
+                                                <div className="flex items-center gap-3 pl-3 shrink-0">
+                                                    <div className={`text-right ${typeConfig.color} font-semibold`}>
+                                                        {typeConfig.sign}₹{tx.amount.toLocaleString('en-IN')}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="text-xs font-medium text-primary hover:underline"
+                                                        onClick={() => setEditingTransaction(tx)}
+                                                    >
+                                                        Edit
+                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -191,6 +204,13 @@ export function GoalDetailsModal({ isOpen, onClose, goal }: GoalDetailsModalProp
                     </ScrollArea>
                 </div>
             </DialogContent>
+            <AddLiquidFundModal
+                isOpen={!!editingTransaction}
+                onClose={() => setEditingTransaction(null)}
+                onSuccess={handleTransactionUpdated}
+                goal={goal ? { _id: goal._id, title: goal.title || goal.name || "Goal", targetAmount: goal.targetAmount } : null}
+                transaction={editingTransaction}
+            />
         </Dialog>
     );
 }

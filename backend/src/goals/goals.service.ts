@@ -12,7 +12,7 @@ export interface GoalWithAllocation {
   userId: string;
   title: string;
   targetAmount: number;
-  bucket: string;
+  bucket?: string;
   deadline: Date;
   category?: string;
   icon?: string;

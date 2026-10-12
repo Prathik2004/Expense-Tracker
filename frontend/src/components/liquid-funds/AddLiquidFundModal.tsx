@@ -19,7 +19,7 @@ import { Loader2 } from "lucide-react";
 interface GoalOption {
     _id: string;
     title: string;
-    bucket: string;
+    bucket?: string;
     targetAmount: number;
 }
 
@@ -28,12 +28,25 @@ interface AddLiquidFundProps {
     onClose: () => void;
     onSuccess: () => void;
     goal?: GoalOption | null;
+    transaction?: {
+        _id: string;
+        date: string;
+        fundName: string;
+        transactionType: "INVEST" | "RETURN" | "WITHDRAW";
+        amount: number;
+        goalId?: string | { _id: string };
+        notes?: string;
+    } | null;
 }
 
-export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiquidFundProps) {
+export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal, transaction }: AddLiquidFundProps) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [fundName, setFundName] = useState("");
-    const [bucket, setBucket] = useState("");
+    const [fundSelection, setFundSelection] = useState("");
+    const [fundNames, setFundNames] = useState<string[]>([]);
+    const [fundSearch, setFundSearch] = useState("");
+    const [debouncedFundSearch, setDebouncedFundSearch] = useState("");
+    const [isFundSearchOpen, setIsFundSearchOpen] = useState(false);
     const [transactionType, setTransactionType] = useState<"INVEST" | "RETURN" | "WITHDRAW">("INVEST");
     const [amount, setAmount] = useState("");
     const [goalId, setGoalId] = useState<string | null>(goal?._id || null);
@@ -45,19 +58,35 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
     useEffect(() => {
         if (isOpen) {
             fetchGoals();
-            if (goal) {
-                setBucket(goal.bucket);
+            fetchFundNames();
+            if (transaction) {
+                setDate(new Date(transaction.date).toISOString().split('T')[0]);
+                setFundName(transaction.fundName);
+                setFundSelection(transaction.fundName);
+                setFundSearch(transaction.fundName);
+                setTransactionType(transaction.transactionType);
+                setAmount(String(transaction.amount));
+                setGoalId(typeof transaction.goalId === "object" ? transaction.goalId._id : transaction.goalId || goal?._id || null);
+                setNotes(transaction.notes || "");
+            } else if (goal) {
                 setGoalId(goal._id);
             }
         }
-    }, [isOpen, goal]);
+    }, [isOpen, goal, transaction]);
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setDebouncedFundSearch(fundSearch.trim());
+        }, 300);
+
+        return () => window.clearTimeout(timer);
+    }, [fundSearch]);
 
     const fetchGoals = async () => {
         try {
             const res = await api.get("/liquid-funds/goals-dropdown");
             setGoals(res.data);
             if (!goal && res.data.length > 0) {
-                setBucket(res.data[0].bucket);
                 setGoalId(res.data[0]._id);
             }
         } catch (err) {
@@ -65,17 +94,39 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
         }
     };
 
+    const fetchFundNames = async () => {
+        try {
+            const res = await api.get("/liquid-funds/filter-options");
+            setFundNames(res.data.fundNames || []);
+        } catch (err) {
+            console.error("Failed to fetch fund names", err);
+        }
+    };
+
     const handleGoalChange = (selectedGoalId: string | null) => {
         setGoalId(selectedGoalId);
-        const selectedGoal = goals.find(g => g._id === selectedGoalId);
-        if (selectedGoal) {
-            setBucket(selectedGoal.bucket);
+    };
+
+    const handleFundChange = (value: string | null) => {
+        if (!value) return;
+        if (value === "__create_new__") {
+            const newFundName = debouncedFundSearch.trim();
+            setFundName(newFundName);
+            setFundSelection(newFundName);
+            setFundSearch(newFundName);
+            setIsFundSearchOpen(false);
+            return;
         }
+
+        setFundSelection(value);
+        setFundName(value);
+        setFundSearch(value);
+        setIsFundSearchOpen(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fundName || !bucket || !amount) {
+        if (!fundName || !goalId || !amount) {
             setError("Please fill all required fields");
             return;
         }
@@ -90,21 +141,24 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
         setError("");
 
         try {
-            await api.post("/liquid-funds", {
+            const payload = {
                 date,
                 fundName,
-                bucket,
                 transactionType,
                 amount: addAmount,
                 goalId: goalId || undefined,
                 notes: notes || undefined
-            });
+            };
+            if (transaction) await api.patch(`/liquid-funds/${transaction._id}`, payload);
+            else await api.post("/liquid-funds", payload);
             onSuccess();
             onClose();
             // Reset form
             setDate(new Date().toISOString().split('T')[0]);
             setFundName("");
-            setBucket("");
+            setFundSelection("");
+            setFundSearch("");
+            setIsFundSearchOpen(false);
             setTransactionType("INVEST");
             setAmount("");
             setGoalId(null);
@@ -117,6 +171,10 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
         }
     };
 
+    const filteredFundNames = fundNames.filter((name) =>
+        name.toLowerCase().includes(debouncedFundSearch.toLowerCase())
+    );
+
     if (!isOpen) return null;
 
     return (
@@ -124,7 +182,9 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
             if (!open) {
                 setDate(new Date().toISOString().split('T')[0]);
                 setFundName("");
-                setBucket("");
+                setFundSelection("");
+                setFundSearch("");
+                setIsFundSearchOpen(false);
                 setTransactionType("INVEST");
                 setAmount("");
                 setGoalId(null);
@@ -135,7 +195,7 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
         }}>
             <DialogContent className="sm:max-w-[500px] w-[95vw] p-4 sm:p-6 rounded-xl">
                 <DialogHeader>
-                    <DialogTitle>Add Liquid Fund Transaction</DialogTitle>
+                    <DialogTitle>{transaction ? "Edit Liquid Fund Transaction" : "Add Liquid Fund Transaction"}</DialogTitle>
                     <DialogDescription>
                         Record an investment, return, or withdrawal
                     </DialogDescription>
@@ -159,27 +219,48 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
                         <Label htmlFor="fundName">Fund Name</Label>
                         <Input
                             id="fundName"
-                            placeholder="e.g. ICICI Prudential Liquid Fund"
-                            value={fundName}
-                            onChange={(e) => setFundName(e.target.value)}
-                            required
+                            placeholder="Search fund names..."
+                            value={fundSearch}
+                            onFocus={() => setIsFundSearchOpen(true)}
+                            onChange={(e) => {
+                                setFundSearch(e.target.value);
+                                setFundSelection("");
+                                setFundName("");
+                                setIsFundSearchOpen(true);
+                            }}
+                            autoComplete="off"
                         />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="bucket">Bucket / Category</Label>
-                        <Input
-                            id="bucket"
-                            placeholder="e.g. INTERNATION TRIP"
-                            value={bucket}
-                            onChange={(e) => setBucket(e.target.value)}
-                            required
-                            disabled={!!goal}
-                            className={goal ? "bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed" : ""}
-                        />
-                        {goal && (
-                            <p className="text-xs text-zinc-500">Bucket is auto-filled from the selected goal</p>
+                        {isFundSearchOpen && (
+                            <div className="relative">
+                                <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
+                                    {filteredFundNames.map((name) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            className="flex w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={() => handleFundChange(name)}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                    {debouncedFundSearch && filteredFundNames.length === 0 && (
+                                        <button
+                                            type="button"
+                                            className="flex w-full rounded-md px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={() => handleFundChange("__create_new__")}
+                                        >
+                                            Create new fund “{debouncedFundSearch}”
+                                        </button>
+                                    )}
+                                    {!debouncedFundSearch && filteredFundNames.length === 0 && (
+                                        <p className="px-3 py-2 text-sm text-zinc-500">No funds available</p>
+                                    )}
+                                </div>
+                            </div>
                         )}
+                        {!fundSelection && <p className="text-xs text-zinc-500">Search and select an existing fund, or create the typed name.</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -214,17 +295,14 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
 
                     {!goal && (
                         <div className="space-y-2">
-                            <Label htmlFor="goalId">Goal / Trip (Optional)</Label>
+                            <Label htmlFor="goalId">Goal</Label>
                             <Select value={goalId || ""} onValueChange={(val) => handleGoalChange(val)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select goal (optional)" />
+                                    <SelectValue placeholder="Select a goal" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">No Goal</SelectItem>
                                     {goals.map((g) => (
-                                        <SelectItem key={g._id} value={g._id}>
-                                            {g.title} ({g.bucket})
-                                        </SelectItem>
+                                        <SelectItem key={g._id} value={g._id}>{g.title}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -248,7 +326,7 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal }: AddLiqu
                         className="w-full h-12 text-base font-semibold"
                         disabled={isLoading}
                     >
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Add Transaction"}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : transaction ? "Save Changes" : "Add Transaction"}
                     </Button>
                 </form>
             </DialogContent>

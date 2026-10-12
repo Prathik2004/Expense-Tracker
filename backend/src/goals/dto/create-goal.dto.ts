@@ -8,8 +8,9 @@ export class CreateGoalDto {
     @Min(0)
     targetAmount: number;
 
+    @IsOptional()
     @IsString()
-    bucket: string;
+    bucket?: string;
 
     @IsOptional()
     @IsDateString()

@@ -12,7 +12,6 @@ import {
     DialogTitle,
     DialogDescription
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 interface AddGoalProps {
@@ -25,13 +24,12 @@ export function AddGoalModal({ isOpen, onClose, onSuccess }: AddGoalProps) {
     const [name, setName] = useState("");
     const [targetAmount, setTargetAmount] = useState("");
     const [deadline, setDeadline] = useState("");
-    const [bucket, setBucket] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !targetAmount || !deadline || !bucket) {
+        if (!name || !targetAmount || !deadline) {
             setError("Please fill all required fields");
             return;
         }
@@ -43,8 +41,7 @@ export function AddGoalModal({ isOpen, onClose, onSuccess }: AddGoalProps) {
             await api.post("/goals", {
                 title: name,
                 targetAmount: parseFloat(targetAmount),
-                deadline: new Date(deadline).toISOString(),
-                bucket: bucket
+                deadline: new Date(deadline).toISOString()
             });
             onSuccess();
             onClose();
@@ -52,7 +49,6 @@ export function AddGoalModal({ isOpen, onClose, onSuccess }: AddGoalProps) {
             setName("");
             setTargetAmount("");
             setDeadline("");
-            setBucket("");
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to add goal");
         } finally {
@@ -82,23 +78,6 @@ export function AddGoalModal({ isOpen, onClose, onSuccess }: AddGoalProps) {
                             onChange={(e) => setName(e.target.value)}
                             required
                         />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="bucket">Bucket</Label>
-                        <Select value={bucket} onValueChange={(val) => setBucket(val ?? '')}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select bucket" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="INTERNATION TRIP">International Trip</SelectItem>
-                                <SelectItem value="HOMETOWN TRAVEL">Hometown Travel</SelectItem>
-                                <SelectItem value="EMERGENCY">Emergency / Other</SelectItem>
-                                <SelectItem value="DOMESTIC TRIP">Domestic Trip</SelectItem>
-                                <SelectItem value="EDUCATION">Education</SelectItem>
-                                <SelectItem value="OTHER">Other</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
 
                     <div className="space-y-2">
