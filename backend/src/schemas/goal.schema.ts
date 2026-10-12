@@ -26,6 +26,9 @@ export class Goal {
 
     @Prop()
     icon?: string;
+
+    @Prop({ default: false })
+    completed: boolean;
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);

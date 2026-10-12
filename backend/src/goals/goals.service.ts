@@ -20,6 +20,10 @@ export interface GoalWithAllocation {
   stillRequired: number;
   progress: number | null;
   status: string;
+  completed: boolean;
+  totalFunded: number;
+  withdrawn: number;
+  balanceAvailable: number;
 }
 
 @Injectable()
@@ -67,7 +71,11 @@ export class GoalsService {
       allocatedAmount: allocation.allocatedAmount,
       stillRequired: allocation.stillRequired,
       progress: allocation.progress,
-      status: allocation.status
+      status: allocation.status,
+      completed: allocation.completed,
+      totalFunded: allocation.totalFunded,
+      withdrawn: allocation.withdrawn,
+      balanceAvailable: allocation.balanceAvailable
     };
   }
 
@@ -99,7 +107,11 @@ export class GoalsService {
       allocatedAmount: allocation.allocatedAmount,
       stillRequired: allocation.stillRequired,
       progress: allocation.progress,
-      status: allocation.status
+      status: allocation.status,
+      completed: allocation.completed,
+      totalFunded: allocation.totalFunded,
+      withdrawn: allocation.withdrawn,
+      balanceAvailable: allocation.balanceAvailable
     };
   }
 
@@ -110,6 +122,9 @@ export class GoalsService {
     stillRequired: number;
     completedGoals: number;
     inProgressGoals: number;
+    totalFunded: number;
+    totalWithdrawn: number;
+    totalBalanceAvailable: number;
   }> {
     const goals = await this.getGoalsWithAllocations(userId);
     return {
@@ -119,6 +134,9 @@ export class GoalsService {
       stillRequired: goals.reduce((sum, g) => sum + g.stillRequired, 0),
       completedGoals: goals.filter(g => g.status === 'COMPLETED').length,
       inProgressGoals: goals.filter(g => g.status === 'IN_PROGRESS').length,
+      totalFunded: goals.reduce((sum, g) => sum + g.totalFunded, 0),
+      totalWithdrawn: goals.reduce((sum, g) => sum + g.withdrawn, 0),
+      totalBalanceAvailable: goals.reduce((sum, g) => sum + g.balanceAvailable, 0),
     };
   }
 
@@ -145,7 +163,11 @@ export class GoalsService {
           allocatedAmount: allocation.allocatedAmount,
           stillRequired: allocation.stillRequired,
           progress: allocation.progress,
-          status: allocation.status
+          status: allocation.status,
+          completed: allocation.completed,
+          totalFunded: allocation.totalFunded,
+          withdrawn: allocation.withdrawn,
+          balanceAvailable: allocation.balanceAvailable
         });
       } else {
         // If no allocation found, set to zero
@@ -161,10 +183,24 @@ export class GoalsService {
           allocatedAmount: 0,
           stillRequired: goal.targetAmount,
           progress: 0,
-          status: goal.targetAmount > 0 ? 'IN_PROGRESS' : 'SET_TARGET'
+          status: goal.targetAmount > 0 ? 'IN_PROGRESS' : 'SET_TARGET',
+          completed: goal.completed || false,
+          totalFunded: 0,
+          withdrawn: 0,
+          balanceAvailable: 0
         });
       }
     }
     return result;
+  }
+
+  async toggleCompleted(userId: string, goalId: string): Promise<{ completed: boolean }> {
+    const goal = await this.goalModel.findOne({ _id: new Types.ObjectId(goalId), userId: new Types.ObjectId(userId) } as any).exec();
+    if (!goal) throw new NotFoundException('Goal not found');
+
+    goal.completed = !goal.completed;
+    await goal.save();
+
+    return { completed: goal.completed };
   }
 }

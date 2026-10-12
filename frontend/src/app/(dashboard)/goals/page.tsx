@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
 import { AddLiquidFundModal } from "@/components/liquid-funds/AddLiquidFundModal";
 import { GoalDetailsModal } from "@/components/goals/GoalDetailsModal";
-import { Loader2, Plus, Target, Trash2, List, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Loader2, Plus, Target, Trash2, List, AlertTriangle, CheckCircle, Clock, Lock, Unlock } from "lucide-react";
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState<any[]>([]);
@@ -24,7 +24,16 @@ export default function GoalsPage() {
     const [selectedDetailsGoal, setSelectedDetailsGoal] = useState<any>(null);
 
     // Summary state
-    const [summary, setSummary] = useState({ totalTargets: 0, totalAllocated: 0, stillRequired: 0 });
+    const [summary, setSummary] = useState({
+        totalTargets: 0,
+        totalAllocated: 0,
+        stillRequired: 0,
+        totalFunded: 0,
+        totalWithdrawn: 0,
+        totalBalanceAvailable: 0,
+        completedGoals: 0,
+        inProgressGoals: 0
+    });
     const [isSummaryLoading, setIsSummaryLoading] = useState(true);
 
     useEffect(() => {
@@ -62,6 +71,17 @@ export default function GoalsPage() {
             fetchSummary();
         } catch (err) {
             console.error("Failed to delete goal", err);
+        }
+    };
+
+    const handleToggleCompleted = async (id: string) => {
+        try {
+            const res = await api.patch(`/goals/${id}/toggle-completed`);
+            setGoals(goals.map(g => g._id === id ? { ...g, completed: res.data.completed } : g));
+            fetchGoals(); // Refresh to get updated status
+            fetchSummary();
+        } catch (err) {
+            console.error("Failed to toggle goal completion", err);
         }
     };
 
@@ -114,7 +134,7 @@ export default function GoalsPage() {
 
             {/* Summary Cards */}
             {!isSummaryLoading && (
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-6">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-zinc-500">Total Targets</CardTitle>
@@ -125,10 +145,26 @@ export default function GoalsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-zinc-500">Total Allocated</CardTitle>
+                            <CardTitle className="text-sm font-medium text-zinc-500">Total Funded</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">₹{(summary.totalAllocated ?? 0).toLocaleString('en-IN')}</div>
+                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">₹{(summary.totalFunded ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Total Withdrawn</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-500">₹{(summary.totalWithdrawn ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Balance Available</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-500">₹{(summary.totalBalanceAvailable ?? 0).toLocaleString('en-IN')}</div>
                         </CardContent>
                     </Card>
                     <Card>
@@ -137,6 +173,17 @@ export default function GoalsPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-amber-600 dark:text-amber-500">₹{(summary.stillRequired ?? 0).toLocaleString('en-IN')}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-1 text-sm">
+                                <div><span className="font-semibold">{summary.completedGoals}</span> Completed</div>
+                                <div><span className="font-semibold">{summary.inProgressGoals}</span> In Progress</div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -163,7 +210,7 @@ export default function GoalsPage() {
                         const percent = goal.progress !== null && goal.progress !== undefined
                             ? Math.min(100, goal.progress * 100)
                             : 0;
-                        const isCompleted = goal.status === 'FUNDED';
+                        const isCompleted = goal.completed;
                         const goalName = goal.title || goal.name;
                         const statusConfig = getStatusConfig(goal.status);
                         const StatusIcon = statusConfig.icon;
@@ -196,7 +243,7 @@ export default function GoalsPage() {
                                     <div>
                                         <div className="flex justify-between text-sm font-medium mb-1.5">
                                             <span className={isCompleted ? "text-emerald-600 dark:text-emerald-500" : ""}>
-                                                ₹{(goal.allocatedAmount ?? 0).toLocaleString('en-IN')}
+                                                ₹{(goal.totalFunded ?? 0).toLocaleString('en-IN')}
                                             </span>
                                             <span className="text-zinc-500">
                                                 ₹{(goal.targetAmount ?? 0).toLocaleString('en-IN')}
@@ -207,6 +254,26 @@ export default function GoalsPage() {
                                             <span>{percent.toFixed(0)}%</span>
                                         </div>
                                         <Progress value={percent} className="h-2" />
+                                    </div>
+                                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                            <div>
+                                                <p className="text-zinc-500 mb-1">Withdrawn</p>
+                                                <p className="font-semibold">₹{(goal.withdrawn ?? 0).toLocaleString('en-IN')}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-zinc-500 mb-1">Balance</p>
+                                                <p className={`font-semibold ${goal.balanceAvailable < 0 ? 'text-red-600 dark:text-red-500' : ''}`}>
+                                                    ₹{(goal.balanceAvailable ?? 0).toLocaleString('en-IN')}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-zinc-500 mb-1">Status</p>
+                                                <p className={`font-semibold ${isCompleted ? 'text-emerald-600 dark:text-emerald-500' : ''}`}>
+                                                    {isCompleted ? '✓ Done' : 'Active'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex gap-2">
@@ -225,6 +292,15 @@ export default function GoalsPage() {
                                         disabled={isCompleted}
                                     >
                                         {isCompleted ? "Funded 🎉" : "Add Funds"}
+                                    </Button>
+                                    <Button
+                                        className="px-3"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleToggleCompleted(goal._id)}
+                                        title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
+                                    >
+                                        {isCompleted ? "✓" : "○"}
                                     </Button>
                                 </CardFooter>
                             </Card>

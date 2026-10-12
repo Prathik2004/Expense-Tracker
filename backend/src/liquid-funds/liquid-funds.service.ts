@@ -16,6 +16,10 @@ export interface GoalAllocationResult {
   stillRequired: number;
   progress: number | null;
   status: string;
+  completed: boolean;
+  totalFunded: number;
+  withdrawn: number;
+  balanceAvailable: number;
 }
 
 export interface LiquidFundSummary {
@@ -176,8 +180,21 @@ export class LiquidFundsService {
    * 2. goalId matches the goal
    * 3. bucket matches the goal's bucket
    * 4. transactionType is INVEST, RETURN, or WITHDRAW
+   *
+   * NEW LOGIC: Withdrawals do NOT affect "still required" or "progress"
+   * - totalFunded = SUM(INVEST) + SUM(RETURN)
+   * - withdrawn = SUM(WITHDRAW)
+   * - balanceAvailable = totalFunded - withdrawn
+   * - stillRequired = max(target - totalFunded, 0)
+   * - progress = totalFunded / target
    */
-  async calculateGoalAllocation(userId: string, goalId: string, bucket: string): Promise<number> {
+  async calculateGoalMetrics(userId: string, goalId: string, bucket: string, targetAmount: number): Promise<{
+    totalFunded: number;
+    withdrawn: number;
+    balanceAvailable: number;
+    stillRequired: number;
+    progress: number | null;
+  }> {
     const transactions = await this.liquidFundModel.find({
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
@@ -185,33 +202,73 @@ export class LiquidFundsService {
       transactionType: { $in: [CreateLiquidFundTransactionType.INVEST, CreateLiquidFundTransactionType.RETURN, CreateLiquidFundTransactionType.WITHDRAW] }
     } as any).exec();
 
-    let allocated = 0;
+    let totalFunded = 0;
+    let withdrawn = 0;
+
     for (const tx of transactions) {
       if (tx.transactionType === CreateLiquidFundTransactionType.INVEST ||
           tx.transactionType === CreateLiquidFundTransactionType.RETURN) {
-        allocated += tx.amount;
+        totalFunded += tx.amount;
       } else if (tx.transactionType === CreateLiquidFundTransactionType.WITHDRAW) {
-        allocated -= tx.amount;
+        withdrawn += tx.amount;
       }
     }
-    return Math.max(0, allocated);
+
+    const balanceAvailable = totalFunded - withdrawn;
+    const stillRequired = Math.max(targetAmount - totalFunded, 0);
+    const progress = targetAmount > 0 ? totalFunded / targetAmount : null;
+
+    return {
+      totalFunded,
+      withdrawn,
+      balanceAvailable,
+      stillRequired,
+      progress
+    };
+  }
+
+  /**
+   * @deprecated Use calculateGoalMetrics instead
+   * Legacy method kept for backward compatibility
+   */
+  async calculateGoalAllocation(userId: string, goalId: string, bucket: string): Promise<number> {
+    const metrics = await this.calculateGoalMetrics(userId, goalId, bucket, 0);
+    return metrics.balanceAvailable;
   }
 
   /**
    * Get goal allocation details including all derived values
+   * Status logic (evaluated in order, first match wins):
+   * 1. goal name empty -> "" (no status)
+   * 2. completed == true -> COMPLETED
+   * 3. bucket missing -> SET BUCKET
+   * 4. balanceAvailable < 0 -> OVER-WITHDRAWN (red)
+   * 5. target missing -> SET TARGET
+   * 6. totalFunded >= target -> FUNDED (green)
+   * 7. targetDate set and < today -> OVERDUE (red)
+   * 8. otherwise -> IN PROGRESS
    */
   async getGoalAllocationDetails(userId: string, goalId: string): Promise<GoalAllocationResult> {
     const goal = await this.goalModel.findOne({ _id: new Types.ObjectId(goalId), userId: new Types.ObjectId(userId) } as any).exec();
     if (!goal) throw new NotFoundException('Goal not found');
 
-    const allocatedAmount = await this.calculateGoalAllocation(userId, goalId, goal.bucket);
-    const stillRequired = Math.max(goal.targetAmount - allocatedAmount, 0);
-    const progress = goal.targetAmount > 0 ? allocatedAmount / goal.targetAmount : null;
+    const metrics = await this.calculateGoalMetrics(userId, goalId, goal.bucket, goal.targetAmount);
+    const { totalFunded, withdrawn, balanceAvailable, stillRequired, progress } = metrics;
 
+    // Status evaluation (exact order matters)
     let status = 'IN_PROGRESS';
-    if (!goal.targetAmount || goal.targetAmount <= 0) {
+
+    if (!goal.title || goal.title.trim() === '') {
+      status = '';
+    } else if (goal.completed) {
+      status = 'COMPLETED';
+    } else if (!goal.bucket || goal.bucket.trim() === '') {
+      status = 'SET_BUCKET';
+    } else if (balanceAvailable < 0) {
+      status = 'OVER-WITHDRAWN';
+    } else if (!goal.targetAmount || goal.targetAmount <= 0) {
       status = 'SET_TARGET';
-    } else if (allocatedAmount >= goal.targetAmount) {
+    } else if (totalFunded >= goal.targetAmount) {
       status = 'FUNDED';
     } else if (goal.deadline && new Date(goal.deadline) < new Date()) {
       status = 'OVERDUE';
@@ -222,10 +279,14 @@ export class LiquidFundsService {
       goalName: goal.title,
       bucket: goal.bucket,
       targetAmount: goal.targetAmount,
-      allocatedAmount,
+      allocatedAmount: balanceAvailable, // Backward-compatible alias
+      totalFunded,
+      withdrawn,
+      balanceAvailable,
       stillRequired,
       progress,
-      status
+      status,
+      completed: goal.completed
     };
   }
 

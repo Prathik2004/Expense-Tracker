@@ -34,6 +34,11 @@ export class GoalsController {
     return this.goalsService.update(req.user.userId, id, updateGoalDto);
   }
 
+  @Patch(':id/toggle-completed')
+  toggleCompleted(@Request() req: any, @Param('id') id: string) {
+    return this.goalsService.toggleCompleted(req.user.userId, id);
+  }
+
   @Delete(':id')
   remove(@Request() req: any, @Param('id') id: string) {
     return this.goalsService.remove(req.user.userId, id);
