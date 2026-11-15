@@ -71,7 +71,12 @@ export class NotificationsService {
   async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
     const existing = await this.getPreferences(userId);
     return this.preferenceModel.findByIdAndUpdate(existing?._id, {
-      $set: { ...dto, ...(dto.types ? { types: { ...existing.types, ...dto.types } } : {}), ...(dto.quietHours ? { quietHours: { ...existing.quietHours, ...dto.quietHours } } : {}) },
+      $set: {
+        ...dto,
+        ...(dto.types ? { types: { ...existing.types, ...dto.types } } : {}),
+        ...(dto.quietHours ? { quietHours: { ...existing.quietHours, ...dto.quietHours } } : {}),
+        ...(dto.customMessages ? { customMessages: this.mergeCustomMessages(existing.customMessages, dto.customMessages) } : {}),
+      },
     }, { new: true }).lean().exec();
   }
 
@@ -108,10 +113,11 @@ export class NotificationsService {
       }
       if (input.dedupeKey && await this.logModel.exists({ userId: new Types.ObjectId(userId), dedupeKey: input.dedupeKey, status: { $in: ['sent', 'skipped'] } } as any)) return 'skipped';
 
+      const message = this.applyCustomMessage(preferences, input);
       const subscriptions = await this.subscriptionModel.find({ userId: new Types.ObjectId(userId) } as any).exec();
-      const payload = JSON.stringify({ title: input.title, body: input.body, url: input.url, tag: input.tag });
+      const payload = JSON.stringify({ title: message.title, body: message.body, url: input.url, tag: input.tag });
       if (!this.configured || subscriptions.length === 0) {
-        await this.writeLog(userId, input, subscriptions.length === 0 ? 'skipped' : 'failed');
+        await this.writeLog(userId, { ...input, ...message }, subscriptions.length === 0 ? 'skipped' : 'failed');
         return subscriptions.length === 0 ? 'skipped' : 'failed';
       }
 
@@ -133,7 +139,7 @@ export class NotificationsService {
           await this.subscriptionModel.updateOne({ _id: subscription._id }, { $inc: { failureCount: 1 } }).exec();
         }
       }
-      await this.writeLog(userId, input, sent ? 'sent' : 'failed');
+      await this.writeLog(userId, { ...input, ...message }, sent ? 'sent' : 'failed');
       return sent ? 'sent' : 'failed';
     } catch (error) {
       this.logger.error(`Notification failed for user ${userId}`, error instanceof Error ? error.stack : String(error));
@@ -148,6 +154,27 @@ export class NotificationsService {
   private async writeLog(userId: string, input: NotificationInput, status: 'sent' | 'failed' | 'skipped') {
     const log = await this.logModel.create({ ...input, userId: new Types.ObjectId(userId) as any, sentAt: new Date(), status });
     if (status === 'sent') this.eventsGateway.emitToUser(userId, 'notification-created', log);
+  }
+
+  private mergeCustomMessages(existing: object | undefined, updates: object) {
+    const merged: Record<string, unknown> = Object.fromEntries(Object.entries(existing || {}));
+    for (const [type, message] of Object.entries(updates)) {
+      const current = merged[type];
+      merged[type] = {
+        ...(typeof current === 'object' && current !== null ? current : {}),
+        ...(typeof message === 'object' && message !== null ? message : {}),
+      };
+    }
+    return merged;
+  }
+
+  private applyCustomMessage(preferences: any, input: NotificationInput) {
+    const custom = preferences.customMessages?.[input.type] as { title?: string; body?: string } | undefined;
+    if (!custom) return { title: input.title, body: input.body };
+    const replace = (template: string | undefined, fallback: string) => (template || fallback)
+      .replaceAll('{{title}}', input.title)
+      .replaceAll('{{body}}', input.body);
+    return { title: replace(custom.title, input.title), body: replace(custom.body, input.body) };
   }
 
   private isQuietHours(timezone: string, start: string, end: string): boolean {

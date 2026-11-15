@@ -3,6 +3,7 @@ import api from "@/lib/api";
 export type NotificationPreferences = {
     enabled: boolean;
     types: Record<string, boolean>;
+    customMessages: Record<string, { title?: string; body?: string }>;
     quietHours: { enabled: boolean; start: string; end: string };
     timezone: string;
     dailyReminderTime: string;
