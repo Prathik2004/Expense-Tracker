@@ -5,7 +5,7 @@ import { Bell, Loader2, Trash2 } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { disableNotifications, enableNotifications, type NotificationPreferences } from "@/lib/notifications";
+import { disableNotifications, enableNotifications, getCurrentPushSubscription, syncGrantedNotifications, type NotificationPreferences } from "@/lib/notifications";
 
 const typeLabels: Record<string, string> = {
     budgetAlerts: "Budget alerts", goalReminders: "Goal reminders", recurringAdded: "Recurring transactions",
@@ -21,8 +21,15 @@ export default function NotificationSettingsPage() {
     const [status, setStatus] = useState("Loading...");
     const [saving, setSaving] = useState(false);
     const [testSending, setTestSending] = useState(false);
+    const [currentDeviceSubscribed, setCurrentDeviceSubscribed] = useState(false);
 
     const load = async () => {
+        try {
+            await syncGrantedNotifications();
+        } catch {
+            // The settings page still loads so it can explain missing server configuration.
+        }
+        setCurrentDeviceSubscribed(Boolean(await getCurrentPushSubscription()));
         const [preferenceResponse, devicesResponse] = await Promise.all([
             api.get("/notifications/preferences"), api.get("/notifications/subscriptions"),
         ]);
@@ -58,6 +65,7 @@ export default function NotificationSettingsPage() {
         setStatus("Requesting permission...");
         try {
             const result = await enableNotifications();
+            setCurrentDeviceSubscribed(result === "subscribed");
             setStatus(result === "unsupported" ? "This browser does not support Web Push." : result === "denied" ? "Permission denied. Re-enable notifications in your browser site settings." : result === "cancelled" ? "Permission request cancelled." : "Subscribed to notifications.");
             updateDraft({ enabled: result === "subscribed" });
             await savePreferences({ enabled: result === "subscribed" });
@@ -70,6 +78,7 @@ export default function NotificationSettingsPage() {
     const disable = async () => {
         try {
             await disableNotifications();
+            setCurrentDeviceSubscribed(false);
             updateDraft({ enabled: false });
             await savePreferences({ enabled: false });
             setStatus("Notifications disabled.");
@@ -82,8 +91,8 @@ export default function NotificationSettingsPage() {
     const sendTest = async () => {
         setTestSending(true);
         try {
-            await api.post("/notifications/test");
-            setStatus("Test notification sent.");
+            const response = await api.post<{ status: "sent" | "failed" | "skipped" }>("/notifications/test");
+            setStatus(response.data.status === "sent" ? "Test notification sent." : response.data.status === "skipped" ? "No active subscribed device was found. Enable notifications on this device first." : "Test notification failed.");
         } catch (error: unknown) {
             const responseStatus = (error as { response?: { status?: number } }).response?.status;
             setStatus(responseStatus === 429 ? "Too many test requests. Please wait a minute and try again." : "Test notification failed.");
@@ -99,6 +108,9 @@ export default function NotificationSettingsPage() {
             <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notification settings</CardTitle><CardDescription>{status}</CardDescription></CardHeader>
                 <CardContent className="space-y-5">
+                    <p className="rounded-lg border border-dashed p-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        {currentDeviceSubscribed ? "This browser is subscribed to push notifications." : "This browser is not subscribed yet. Enable notifications here to add this device."}
+                    </p>
                     <label className="flex items-center justify-between gap-4"><span className="font-medium">Enable notifications</span><input type="checkbox" checked={preferences.enabled} onChange={(event) => event.target.checked ? enable() : disable()} disabled={saving} /></label>
                     <div className="grid gap-3 sm:grid-cols-2">
                         {Object.entries(typeLabels).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-lg border p-3"><span>{label}</span><input type="checkbox" checked={preferences.types?.[key] !== false} onChange={(event) => updateDraft({ types: { [key]: event.target.checked } })} /></label>)}

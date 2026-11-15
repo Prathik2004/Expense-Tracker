@@ -50,7 +50,10 @@ export class LiquidFundsService {
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(createLiquidFundDto.goalId),
     });
-    return createdTransaction.save();
+    const savedTransaction = await createdTransaction.save();
+    return this.liquidFundModel.findById(savedTransaction._id)
+      .populate('goalId', 'title bucket')
+      .exec() as Promise<LiquidFundTransactionDocument>;
   }
 
   async findAll(userId: string, query: any): Promise<{
@@ -124,7 +127,9 @@ export class LiquidFundsService {
   async findOne(userId: string, id: string): Promise<LiquidFundTransactionDocument> {
     const transaction = await this.liquidFundModel.findOne({ _id: new Types.ObjectId(id), userId: new Types.ObjectId(userId) } as any).exec();
     if (!transaction) throw new NotFoundException('Liquid fund transaction not found');
-    return transaction;
+    return this.liquidFundModel.findById(transaction._id)
+      .populate('goalId', 'title bucket')
+      .exec() as Promise<LiquidFundTransactionDocument>;
   }
 
   async update(userId: string, id: string, updateLiquidFundDto: UpdateLiquidFundDto): Promise<LiquidFundTransactionDocument> {

@@ -94,25 +94,25 @@ export class NotificationsService {
     return this.logModel.updateMany({ userId: new Types.ObjectId(userId), readAt: null } as any, { readAt: new Date() }).exec();
   }
 
-  async send(userId: string, input: NotificationInput): Promise<void> {
+  async send(userId: string, input: NotificationInput): Promise<'sent' | 'failed' | 'skipped'> {
     try {
       const preferences = await this.getPreferences(userId);
       const enabledForType = preferences?.types?.[input.type as keyof typeof preferences.types];
       if (!preferences?.enabled || enabledForType === false) {
         await this.writeLog(userId, input, 'skipped');
-        return;
+        return 'skipped';
       }
       if (!input.urgent && preferences.quietHours?.enabled && this.isQuietHours(preferences.timezone, preferences.quietHours.start, preferences.quietHours.end)) {
         await this.writeLog(userId, input, 'skipped');
-        return;
+        return 'skipped';
       }
-      if (input.dedupeKey && await this.logModel.exists({ userId: new Types.ObjectId(userId), dedupeKey: input.dedupeKey, status: { $in: ['sent', 'skipped'] } } as any)) return;
+      if (input.dedupeKey && await this.logModel.exists({ userId: new Types.ObjectId(userId), dedupeKey: input.dedupeKey, status: { $in: ['sent', 'skipped'] } } as any)) return 'skipped';
 
       const subscriptions = await this.subscriptionModel.find({ userId: new Types.ObjectId(userId) } as any).exec();
       const payload = JSON.stringify({ title: input.title, body: input.body, url: input.url, tag: input.tag });
       if (!this.configured || subscriptions.length === 0) {
         await this.writeLog(userId, input, subscriptions.length === 0 ? 'skipped' : 'failed');
-        return;
+        return subscriptions.length === 0 ? 'skipped' : 'failed';
       }
 
       const results = await Promise.allSettled(subscriptions.map(subscription => webpush.sendNotification(
@@ -134,13 +134,15 @@ export class NotificationsService {
         }
       }
       await this.writeLog(userId, input, sent ? 'sent' : 'failed');
+      return sent ? 'sent' : 'failed';
     } catch (error) {
       this.logger.error(`Notification failed for user ${userId}`, error instanceof Error ? error.stack : String(error));
+      return 'failed';
     }
   }
 
-  async sendTest(userId: string) {
-    await this.send(userId, { type: 'securityAlerts', title: 'Expensify test notification', body: 'Push notifications are working.', url: '/settings/notifications', tag: 'test' });
+  async sendTest(userId: string): Promise<'sent' | 'failed' | 'skipped'> {
+    return this.send(userId, { type: 'securityAlerts', title: 'Expensify test notification', body: 'Push notifications are working.', url: '/settings/notifications', tag: 'test' });
   }
 
   private async writeLog(userId: string, input: NotificationInput, status: 'sent' | 'failed' | 'skipped') {

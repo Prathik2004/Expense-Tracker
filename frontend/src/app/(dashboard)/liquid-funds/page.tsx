@@ -306,7 +306,12 @@ export default function LiquidFundsPage() {
                                 {transactions.map((tx) => (
                                     <LiquidFundTransactionRow
                                         key={tx._id}
-                                        transaction={tx}
+                                        transaction={{
+                                            ...tx,
+                                            goalName: typeof tx.goalId === "string"
+                                                ? filterOptions.goals.find((goal) => goal._id === tx.goalId)?.title
+                                                : undefined,
+                                        }}
                                         onDelete={() => handleDelete(tx._id)}
                                     />
                                 ))}
@@ -315,7 +320,9 @@ export default function LiquidFundsPage() {
                     </div>
                     <div className="space-y-3 md:hidden">
                         {transactions.map((tx) => {
-                            const goalTitle = typeof tx.goalId === "object" ? tx.goalId?.title : null;
+                            const goalTitle = typeof tx.goalId === "object"
+                                ? tx.goalId?.title
+                                : filterOptions.goals.find((goal) => goal._id === tx.goalId)?.title;
                             return (
                                 <Card key={tx._id} className="rounded-xl">
                                     <CardContent className="p-4">

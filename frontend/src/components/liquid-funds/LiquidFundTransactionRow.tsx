@@ -11,6 +11,7 @@ interface LiquidFundTransactionRowProps {
         transactionType: string;
         amount: number;
         goalId?: string | { _id: string; title: string; bucket: string };
+        goalName?: string;
         notes?: string;
     };
     onDelete: () => void;
@@ -60,9 +61,9 @@ export function LiquidFundTransactionRow({ transaction, onDelete }: LiquidFundTr
 
     const typeConfig = getTypeConfig(transaction.transactionType);
 
-    const goalTitle = transaction.goalId
-        ? (typeof transaction.goalId === 'object' ? transaction.goalId.title : null)
-        : null;
+    const goalTitle = typeof transaction.goalId === 'object'
+        ? transaction.goalId.title
+        : transaction.goalName;
 
     return (
         <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-950/50">

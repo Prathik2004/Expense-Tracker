@@ -37,6 +37,12 @@ export async function syncPushSubscription(): Promise<PushSubscription | null> {
     return subscription;
 }
 
+export async function getCurrentPushSubscription(): Promise<PushSubscription | null> {
+    if (!isSupported()) return null;
+    const registration = await navigator.serviceWorker.getRegistration("/");
+    return registration?.pushManager.getSubscription() || null;
+}
+
 export async function enableNotifications(): Promise<"subscribed" | "denied" | "unsupported" | "cancelled"> {
     if (!isSupported()) return "unsupported";
     if (Notification.permission === "denied") return "denied";
