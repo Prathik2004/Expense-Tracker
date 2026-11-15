@@ -60,7 +60,6 @@ export function LiquidFundTransactionRow({ transaction, onDelete }: LiquidFundTr
 
     const typeConfig = getTypeConfig(transaction.transactionType);
 
-    // Handle populated goal object or plain goalId string
     const goalTitle = transaction.goalId
         ? (typeof transaction.goalId === 'object' ? transaction.goalId.title : null)
         : null;
