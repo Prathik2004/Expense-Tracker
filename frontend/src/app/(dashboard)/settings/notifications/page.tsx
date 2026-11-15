@@ -5,7 +5,7 @@ import { Bell, Loader2, Trash2 } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { disableNotifications, enableNotifications, getCurrentPushSubscription, syncGrantedNotifications, type NotificationPreferences } from "@/lib/notifications";
+import { disableNotifications, enableNotifications, getCurrentPushSubscription, syncGrantedNotifications, syncPushSubscription, type NotificationPreferences } from "@/lib/notifications";
 
 const typeLabels: Record<string, string> = {
     budgetAlerts: "Budget alerts", goalReminders: "Goal reminders", recurringAdded: "Recurring transactions",
@@ -91,6 +91,18 @@ export default function NotificationSettingsPage() {
     const sendTest = async () => {
         setTestSending(true);
         try {
+            if (!await getCurrentPushSubscription()) {
+                if (Notification.permission !== "granted") {
+                    const result = await enableNotifications();
+                    if (result !== "subscribed") {
+                        setStatus(result === "denied" ? "Allow browser notifications before sending a test." : "Enable notifications on this device before sending a test.");
+                        return;
+                    }
+                } else {
+                    await syncPushSubscription();
+                }
+                setCurrentDeviceSubscribed(Boolean(await getCurrentPushSubscription()));
+            }
             const response = await api.post<{ status: "sent" | "failed" | "skipped" }>("/notifications/test");
             setStatus(response.data.status === "sent" ? "Test notification sent." : response.data.status === "skipped" ? "No active subscribed device was found. Enable notifications on this device first." : "Test notification failed.");
         } catch (error: unknown) {

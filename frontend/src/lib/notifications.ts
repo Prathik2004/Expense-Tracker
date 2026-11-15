@@ -26,10 +26,11 @@ export function urlBase64ToUint8Array(value: string): ArrayBuffer {
 export async function syncPushSubscription(): Promise<PushSubscription | null> {
     const registration = await registerNotificationServiceWorker();
     if (!registration) return null;
+    const activeRegistration = await navigator.serviceWorker.ready;
     const keyResponse = await api.get<{ publicKey: string | null }>("/notifications/vapid-public-key");
     if (!keyResponse.data.publicKey) throw new Error("Push notifications are not configured on the server.");
-    const existing = await registration.pushManager.getSubscription();
-    const subscription = existing || await registration.pushManager.subscribe({
+    const existing = await activeRegistration.pushManager.getSubscription();
+    const subscription = existing || await activeRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(keyResponse.data.publicKey),
     });
