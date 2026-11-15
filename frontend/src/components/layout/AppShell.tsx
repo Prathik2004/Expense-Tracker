@@ -15,6 +15,8 @@ import {
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { registerNotificationServiceWorker, syncGrantedNotifications } from '@/lib/notifications';
 
 const CommandPalette = dynamic(() => import('./CommandPalette').then(mod => mod.CommandPalette), { ssr: false });
 const AddTransactionModal = dynamic(() => import('@/components/transactions/AddTransactionModal').then(mod => mod.AddTransactionModal), {
@@ -45,6 +47,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setIsMounted(true);
         checkAuth();
+        void registerNotificationServiceWorker().catch((error) => console.warn('Service worker registration failed', error));
+        void syncGrantedNotifications().catch((error) => console.warn('Notification sync failed', error));
 
         // Defer global components like DynamicIsland and CommandPalette even more on mobile
         const timer = setTimeout(() => {
@@ -52,6 +56,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }, 1500);
         return () => clearTimeout(timer);
     }, [checkAuth]);
+
+    useEffect(() => {
+        const handleSubscriptionChange = () => {
+            void syncGrantedNotifications().catch((error) => console.warn('Notification resync failed', error));
+        };
+        navigator.serviceWorker?.addEventListener('message', handleSubscriptionChange);
+        return () => navigator.serviceWorker?.removeEventListener('message', handleSubscriptionChange);
+    }, []);
 
     useEffect(() => {
         if (!isLoading && !user && isMounted) {
@@ -91,6 +103,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 socket.on('transaction_updated', handleSync);
                 socket.on('transaction_deleted', handleSync);
                 socket.on('transactions_bulk_added', handleSync);
+                socket.on('notification-created', (notification) => {
+                    window.dispatchEvent(new CustomEvent('notification-created', { detail: notification }));
+                });
 
                 return socket;
             };
@@ -128,6 +143,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
             <Sidebar />
+            <div className="fixed right-8 top-4 z-50 hidden md:block">
+                <NotificationBell />
+            </div>
             {isGlobalDeferred && <CommandPalette />}
             {isGlobalDeferred && <DynamicIsland />}
             {isGlobalDeferred && <PrivacyShield />}
@@ -148,6 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         >
                             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </Button>
+                        <NotificationBell />
                         <Button
                             variant="ghost"
                             size="icon"

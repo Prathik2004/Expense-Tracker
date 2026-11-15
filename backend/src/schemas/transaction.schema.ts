@@ -30,6 +30,9 @@ export class Transaction {
     @Prop()
     recurringDay?: number;
 
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Transaction', index: true })
+    recurringTemplateId?: MongooseSchema.Types.ObjectId;
+
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

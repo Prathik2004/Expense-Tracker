@@ -15,6 +15,7 @@ import { LendingModule } from './lending/lending.module';
 import { SecurityModule } from './security/security.module';
 import { EventsModule } from './events/events.module';
 import { LiquidFundsModule } from './liquid-funds/liquid-funds.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { LiquidFundsModule } from './liquid-funds/liquid-funds.module';
     SecurityModule,
     EventsModule,
     LiquidFundsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

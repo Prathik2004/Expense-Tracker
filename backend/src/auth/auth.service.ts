@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Session, SessionDocument } from '../schemas/session.schema';
 import { RegisterDto } from './dto/register.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
         private usersService: UsersService,
         private jwtService: JwtService,
         @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     async validateUser(email: string, pass: string): Promise<any> {
@@ -64,6 +66,15 @@ export class AuthService {
             deviceType,
             lastActive: new Date(),
             isValid: true
+        });
+        void this.notificationsService.send(user._id.toString(), {
+            type: 'securityAlerts',
+            title: 'New Expensify login',
+            body: 'Your account was accessed from a new session.',
+            url: '/settings/sessions',
+            tag: `login-${sessionId}`,
+            dedupeKey: `login:${sessionId}`,
+            urgent: true,
         });
 
         const payload = { email: user.email, sub: user._id, sessionId };

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import PDFDocument from 'pdfkit';
@@ -8,13 +8,18 @@ import { User, UserDocument } from '../schemas/user.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { EventsGateway } from '../events/events.gateway';
+import { Budget, BudgetDocument } from '../schemas/budget.schema';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TransactionsService {
+  private readonly logger = new Logger(TransactionsService.name);
   constructor(
     @InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private eventsGateway: EventsGateway
+    @InjectModel(Budget.name) private budgetModel: Model<BudgetDocument>,
+    private eventsGateway: EventsGateway,
+    private notificationsService: NotificationsService,
   ) { }
 
   async create(userId: string, createTransactionDto: CreateTransactionDto): Promise<TransactionDocument> {
@@ -24,6 +29,7 @@ export class TransactionsService {
     });
     const saved = await createdTransaction.save();
     this.eventsGateway.emitToUser(userId, 'transaction_added', saved);
+    void this.checkBudgetThreshold(userId, saved.category, saved.type, saved.date);
     return saved;
   }
 
@@ -130,7 +136,39 @@ export class TransactionsService {
     ).exec();
     if (!transaction) throw new NotFoundException('Transaction not found');
     this.eventsGateway.emitToUser(userId, 'transaction_updated', transaction);
+    void this.checkBudgetThreshold(userId, transaction.category, transaction.type, transaction.date);
     return transaction as any;
+  }
+
+  private async checkBudgetThreshold(userId: string, category: string, type: string, date: Date): Promise<void> {
+    try {
+      if (type !== 'expense') return;
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const budget = await this.budgetModel.findOne({ userId, category, month } as any).lean().exec();
+      if (!budget || budget.monthlyLimit <= 0) return;
+      const [year, monthNumber] = month.split('-').map(Number);
+      const spent = await this.transactionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), category, type: 'expense', date: { $gte: new Date(year, monthNumber - 1, 1), $lt: new Date(year, monthNumber, 1) } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]);
+      const percentage = Math.round(((spent[0]?.total || 0) / budget.monthlyLimit) * 100);
+      const threshold = percentage >= 100 ? 100 : percentage >= 80 ? 80 : 0;
+      if (!threshold) return;
+      const preferences = await this.notificationsService.getPreferences(userId);
+      const body = preferences?.hideAmounts
+        ? `Budget alert: ${category} is ${threshold}% used`
+        : `Budget alert: ${category} is ${percentage}% used`;
+      void this.notificationsService.send(userId, {
+        type: 'budgetAlerts',
+        title: threshold === 100 ? 'Budget exceeded' : 'Budget alert',
+        body,
+        url: '/budgets',
+        tag: `budget-${budget._id}-${month}`,
+        dedupeKey: `budget${threshold}:${budget._id}:${month}`,
+      });
+    } catch (error) {
+      this.logger.error('Budget notification check failed', error instanceof Error ? error.stack : String(error));
+    }
   }
 
   async remove(userId: string, id: string): Promise<void> {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/api';
+import { disableNotifications, syncGrantedNotifications } from '../lib/notifications';
 
 interface User {
     _id?: string;
@@ -32,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('user', JSON.stringify(user));
         if (sessionId) localStorage.setItem('sessionId', sessionId);
         set({ user, token: access_token });
+        void syncGrantedNotifications().catch((error) => console.warn('Notification sync failed', error));
     },
 
     register: async (userData) => {
@@ -41,9 +43,15 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('user', JSON.stringify(user));
         if (sessionId) localStorage.setItem('sessionId', sessionId);
         set({ user, token: access_token });
+        void syncGrantedNotifications().catch((error) => console.warn('Notification sync failed', error));
     },
 
-    logout: () => {
+    logout: async () => {
+        try {
+            await disableNotifications();
+        } catch (error) {
+            console.warn('Notification unsubscribe failed during logout', error);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('sessionId');

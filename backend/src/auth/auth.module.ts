@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { GoogleStrategy } from './google.strategy';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Session, SessionSchema } from '../schemas/session.schema';
@@ -14,6 +15,7 @@ import { Session, SessionSchema } from '../schemas/session.schema';
   imports: [
     UsersModule,
     PassportModule,
+    NotificationsModule,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
