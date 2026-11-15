@@ -18,12 +18,13 @@ self.addEventListener("push", (event) => {
   const body = typeof payload.body === "string" ? payload.body : "You have a new notification.";
   const url = typeof payload.url === "string" && payload.url.startsWith("/") ? payload.url : "/";
   const tag = typeof payload.tag === "string" ? payload.tag : undefined;
-  const icon = typeof payload.icon === "string" ? payload.icon : "/icon-192.png";
+  const icon = typeof payload.icon === "string" ? payload.icon : "/icon.svg";
+  const image = typeof payload.image === "string" && payload.image.startsWith("/") ? payload.image : undefined;
 
   event.waitUntil(self.registration.showNotification(title, {
     body,
     icon,
-    badge: "/badge-72.png",
+    image,
     tag,
     data: { url }
   }));

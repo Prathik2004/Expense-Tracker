@@ -162,6 +162,7 @@ export class TransactionsService {
         type: 'budgetAlerts',
         title: threshold === 100 ? 'Budget exceeded' : 'Budget alert',
         body,
+        image: threshold === 100 ? '/budget-exceeded.png' : '/budget-warning.png',
         url: '/budgets',
         tag: `budget-${budget._id}-${month}`,
         dedupeKey: `budget${threshold}:${budget._id}:${month}`,

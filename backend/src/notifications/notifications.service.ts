@@ -15,6 +15,7 @@ export interface NotificationInput {
   title: string;
   body: string;
   url: string;
+  image?: string;
   tag?: string;
   dedupeKey?: string;
   urgent?: boolean;
@@ -115,7 +116,14 @@ export class NotificationsService {
 
       const message = this.applyCustomMessage(preferences, input);
       const subscriptions = await this.subscriptionModel.find({ userId: new Types.ObjectId(userId) } as any).exec();
-      const payload = JSON.stringify({ title: message.title, body: message.body, url: input.url, tag: input.tag });
+      const payload = JSON.stringify({
+        title: message.title,
+        body: message.body,
+        url: input.url,
+        tag: input.tag,
+        icon: '/icon.svg',
+        image: input.image || this.getNotificationImage(input.type),
+      });
       if (!this.configured || subscriptions.length === 0) {
         await this.writeLog(userId, { ...input, ...message }, subscriptions.length === 0 ? 'skipped' : 'failed');
         return subscriptions.length === 0 ? 'skipped' : 'failed';
@@ -175,6 +183,20 @@ export class NotificationsService {
       .replaceAll('{{title}}', input.title)
       .replaceAll('{{body}}', input.body);
     return { title: replace(custom.title, input.title), body: replace(custom.body, input.body) };
+  }
+
+  private getNotificationImage(type: string): string {
+    const images: Record<string, string> = {
+      budgetAlerts: '/budget-warning.png',
+      goalReminders: '/goal-reminder.png',
+      recurringAdded: '/recurring-added.png',
+      weeklySummary: '/weekly-summary.png',
+      monthlySummary: '/monthly-summary.png',
+      lendingReminders: '/lending-reminder.png',
+      securityAlerts: '/security-alert.png',
+      dailyReminder: '/daily-reminder.png',
+    };
+    return images[type] || '/icon.svg';
   }
 
   private isQuietHours(timezone: string, start: string, end: string): boolean {

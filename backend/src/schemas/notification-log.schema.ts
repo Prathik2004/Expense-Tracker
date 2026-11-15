@@ -12,6 +12,7 @@ export class NotificationLog {
   @Prop({ required: true }) title: string;
   @Prop({ required: true }) body: string;
   @Prop({ required: true }) url: string;
+  @Prop() image?: string;
   @Prop() tag?: string;
   @Prop({ required: true }) sentAt: Date;
   @Prop() readAt?: Date;
