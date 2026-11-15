@@ -298,7 +298,9 @@ export function AddLiquidFundModal({ isOpen, onClose, onSuccess, goal, transacti
                             <Label htmlFor="goalId">Goal</Label>
                             <Select value={goalId || ""} onValueChange={(val) => handleGoalChange(val)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a goal" />
+                                    <SelectValue>
+                                        {(value) => goals.find((item) => item._id === value)?.title || "Select a goal"}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {goals.map((g) => (
