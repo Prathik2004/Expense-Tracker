@@ -31,6 +31,10 @@
 $ npm install
 ```
 
+## Trip expense storage
+
+Trip workspaces and their expenses are stored in the `trip_expense_logs` MongoDB collection in the database configured by the existing `MONGODB_URI`. The collection is created by MongoDB when the first trip is saved. Trip endpoints are authenticated under `/trip-expenses`.
+
 ## Compile and run the project
 
 ```bash
